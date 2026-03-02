@@ -20,6 +20,7 @@ import ScreenProductoAbierto from "../ScreenDialog/ProductoAbierto";
 import CierreCaja from "../ScreenDialog/CierreCaja";
 import UserEvent from "../../Models/UserEvent";
 import System from "../../Helpers/System";
+import BusquedaRapidaOfertas from "../ScreenDialog/BusquedaRapidaOfertas";
 
 
 const BoxBotones = () => {
@@ -51,6 +52,7 @@ const BoxBotones = () => {
   const [showScreenDevolucion, setShowScreenDevolucion] = useState(false);
   const [showProductoAbierto, setShowProductoAbierto] = useState(false);
   const [showScreenCierreCaja, setShowScreenCierreCaja] = useState(false)
+  const [verOfertas, setVerOfertas] = useState(false)
 
   const focusSearchInput = () => {
     System.darFocoEnBuscar(searchInputRef)
@@ -228,8 +230,12 @@ const BoxBotones = () => {
                 }
               }}
             />
+
+            <BusquedaRapidaOfertas openDialog={verOfertas} setOpenDialog={setVerOfertas} />
+
             <MainButton textButton="Busqueda Rapida" actionButton={() => {
               setShowFastSearchDialog(true)
+              // setVerOfertas(true)
             }} />
 
             <ScreenProductoAbierto openDialog={showProductoAbierto}

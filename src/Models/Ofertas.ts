@@ -37,17 +37,27 @@ export default class extends ModelSingleton {
       callbackOk(responseData.ofertas, response)
     }, callbackWrong)
   }
+  static async getAllOfertas(callbackOk: any, callbackWrong: any) {
+    const url = ModelConfig.get("urlBase") + "/api/Ofertas/GetAllOfertas"
+    EndPoint.sendGet(url, (responseData: any, response: any) => {
+      callbackOk(responseData.ofertas, response)
+    }, callbackWrong)
+  }
 
   static revisarOfertas(productosVendidos: any, ofertas: any, callbackAplicoAlgo: any, callbackNoAplicoNada: any) {
-    // console.log("revisarOfertas")
-    if (this.aplicando) return
+    if (this.aplicando) {
+      console.log("revisarOfertas ya se esta aplicando ofertas")
+      return
+    }
     this.aplicando = true
-    if (ofertas.length < 1) {
+    if (ofertas.length < 1 || productosVendidos.length < 1) {
       callbackNoAplicoNada()
       this.aplicando = false
+      return
     }
 
-    var copiaProductos = productosVendidos
+    console.log("revisarOfertas para los productos", System.clone(productosVendidos))
+    var copiaProductos = System.clone(productosVendidos)
     var resultadoOfertas: any = {
       productosQueAplican: [],
       productosQueNoAplican: copiaProductos
@@ -58,6 +68,7 @@ export default class extends ModelSingleton {
     ofertas.forEach((ofer: any, ix: number) => {
       if ([1, 2, 3, 4, 5].includes(ofer.tipo)) {
         var of: any = null;
+        console.log("trabajando con oferta", System.clone(ofer))
         if (ofer.tipo == 5) {
           of = new Oferta5();
         } else {
@@ -65,6 +76,7 @@ export default class extends ModelSingleton {
             tieneTipo2 = true
             of = new Oferta2();
           } else {
+            console.log("es tipo 1 o 3 o 4")
             of = new Oferta134();
           }
         }
@@ -73,7 +85,7 @@ export default class extends ModelSingleton {
 
         while (of.debeAplicar(resultadoOfertas.productosQueNoAplican)) {
           const resultadoAplicar: any = of.aplicar(resultadoOfertas.productosQueNoAplican)
-          // console.log("luego de aplicar queda asi", resultadoAplicar)
+          console.log("luego de aplicar queda asi", resultadoAplicar)
 
           resultadoOfertas.productosQueAplican =
             resultadoOfertas.productosQueAplican.concat(resultadoAplicar.productosQueAplican)

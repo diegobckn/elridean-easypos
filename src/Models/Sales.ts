@@ -56,23 +56,25 @@ class Sales {
     );
   }
 
-  findKeyAndPriceAndNameInProducts(productId: number, price: number | string, name: string): number {
-    // console.log("findKeyAndPriceAndNameInProducts")
-    // console.log("productId", productId)
-    // console.log("price", price)
-    // console.log("name", name)
+  // findKeyAndPriceAndNameInProducts(productId: number, price: number | string, name: string): number {
+  findKeyAndPriceAndNameInProducts(productSearch: any): number {
+    console.log("findKeyAndPriceAndNameInProducts")
+    console.log("productSearch", productSearch)
+
+    const precioNuevo = ProductSold.createByValues(productSearch).getPrecioCantidad()
+
 
     var keyEncontrada = -1
-    this.products.forEach((prod, ix) => {
+    this.products.forEach((productInList, ix) => {
       const aplica = (
-        prod.idProducto + "" === productId + ""
-        && prod.idProducto !== 0
-        && (prod.precioVenta === price || prod.preVenta === price)
-        && prod.description === name
+        productInList.idProducto + "" === productSearch.productId + ""
+        && productInList.idProducto !== 0
+        && (productInList.precioVenta === precioNuevo)
+        && productInList.description === productSearch.descripcion
       )
 
-      // console.log("item prod", prod)
-      // console.log("aplica", aplica)
+      console.log("item productInList", productInList)
+      console.log("aplica", aplica)
       if (aplica) {
         keyEncontrada = ix
       }
@@ -302,10 +304,9 @@ class Sales {
     newProductSold.description = productNew.nombre
     // newProductSold.nombre = product.nombre
     newProductSold.cantidad = newQuantity
-    newProductSold.cantidad = newQuantity
-    newProductSold.pesable = (productNew.tipoVenta == 2)
+    newProductSold.pesable = ProductSold.esPesable(newProductSold)
     // newProductSold.tipoVenta = product.tipoVenta
-    newProductSold.precioVenta = ProductSold.createByValues(newProductSold).getPrecioCantidad(1)
+    newProductSold.precioVenta = ProductSold.createByValues(newProductSold).getPrecioCantidad()
     newProductSold.key = this.products.length + 0
     // newProductSold.precioCosto = product.precioCosto
     // if (product.preVenta) {
@@ -314,6 +315,7 @@ class Sales {
     // }
 
     newProductSold.extras = System.clone(extraDefaultLlevar)
+    newProductSold.updateSubtotal()
 
     this.products = [...this.products, newProductSold]
 
@@ -324,36 +326,23 @@ class Sales {
       envase.idProducto = 0
       envase.description = productNew.envase[0].descripcion
       envase.nombre = productNew.envase[0].descripcion
-      if (productNew.envase[0].cantidad !== undefined) {
-        envase.cantidad = productNew.envase[0].cantidad
-      } else {
-        envase.cantidad = newQuantity
-      }
+
       envase.cantidad = newQuantity
       envase.pesable = false
       envase.tipoVenta = 1
       envase.ownerEnvaseId = productNew.idProducto
       envase.precioVenta = productNew.envase[0].costo
-      envase.precioVenta = envase.precioVenta
 
-      envase.precioCosto = productNew.envase[0].costo
+      console.log("envase", System.clone(envase))
       envase.updateSubtotal()
       this.products = [...this.products, envase]
 
-      const lastProductIndex = this.findKeyAndPriceAndNameInProducts(
-        productNew.idProducto,
-        productNew.precioVenta,
-        productNew.nombre
-      )
-      const lastProduct = this.products[lastProductIndex]
-      if (lastProduct) {
-        lastProduct.hasEnvase = true
-        envase.isEnvase = true
-      }
+      productNew.hasEnvase = true
+      envase.isEnvase = true
     }
 
 
-    newProductSold.updateSubtotal()
+
   }
 
 
@@ -372,7 +361,6 @@ class Sales {
     const agruparProductoLinea = ModelConfig.get("agruparProductoLinea")
 
     const precio = ProductSold.createByValues(productoAAgregar).getPrecioCantidad(cantidad) ?? productoAAgregar.precioVenta
-    // const existingProductIndex = this.findKeyAndPriceAndNameInProducts(product.idProducto, product.precioVenta, product.nombre)
     const existingProductIndex = this.findKeyAndPriceInProducts(productoAAgregar.idProducto, precio)
 
     // console.log("agruparProductoLinea", agruparProductoLinea)

@@ -50,21 +50,36 @@ class ProductSold extends Product implements IProductSold {
         return false
     }
 
+    static tieneRangoStatic(prod: any) {
+        const tempProd = new ProductSold()
+        tempProd.fill(prod)
+        return tempProd.tieneRango()
+    }
+
+    tieneRango() {
+        return (this.mostrarPrecioRangos
+            && this.mostrarPrecioRangos.length > 0
+            && this.mostrarPrecioRangos[0].cantidadDesde > 0)
+    }
+
     getPrecioCantidad(otraCantidad: number | null | undefined = null) {
+        // console.log("")
+        // console.log("")
+        // console.log("getPrecioCantidad................")
+        // console.log("prod", this)
+        // console.log("otraCantidad", otraCantidad)
         if (this.precioVentaCliente) {
+            // console.log("tiene precioVentaCliente..devuelte precioVenta")
             return this.precioVentaCliente
         }
 
         const cl = Client.getInstance()
         if (cl.sesion.hasOne()) {
+            // console.log("tiene cliente..devuelte precioVenta")
             return this.precioVenta
         }
 
-        if (
-            this.mostrarPrecioRangos
-            && this.mostrarPrecioRangos.length > 0
-            && this.mostrarPrecioRangos[0].cantidadDesde > 0
-        ) {
+        if (this.tieneRango()) {
             // console.log("tengo rango de precios")
 
             const miCantidad = otraCantidad ? otraCantidad : this.cantidad
@@ -79,10 +94,12 @@ class ProductSold extends Product implements IProductSold {
             })
             if (miRangoIndex == -1) miRangoIndex = ultimoRangoIndex
             const miRango = this.mostrarPrecioRangos[miRangoIndex]
+            // console.log("miRango", miRango)
             if (this.precioVenta != miRango.precioVenta) {
                 this.precioVenta = miRango.precioVenta
             }
         }
+        // console.log("devuelve..precioVenta", this.precioVenta)
         return this.precioVenta
     }
 

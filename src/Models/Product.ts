@@ -290,7 +290,7 @@ class Product extends ModelSingleton {
     }
 
     async findByCodigoBarras({ codigoProducto, codigoCliente }: any, callbackOk: any, callbackWrong: any, soloOnline = false) {
-        // console.log("findByCodigoBarras codigoProducto", codigoProducto + "")
+        console.log("findByCodigoBarras codigoProducto", codigoProducto + "")
         if (Product.enviando) {
             // console.log("saliendo porque ya esta enviando")
             return
