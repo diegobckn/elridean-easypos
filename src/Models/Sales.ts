@@ -346,9 +346,10 @@ class Sales {
         productNew.nombre
       )
       const lastProduct = this.products[lastProductIndex]
-
-      lastProduct.hasEnvase = true
-      envase.isEnvase = true
+      if (lastProduct) {
+        lastProduct.hasEnvase = true
+        envase.isEnvase = true
+      }
     }
 
 
