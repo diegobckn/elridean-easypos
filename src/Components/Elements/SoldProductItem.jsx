@@ -380,12 +380,15 @@ const SoldProductItem = ({
 
 
           {product.description}
-          <Typography sx={{
-            color: "#828282",
-            fontSize: 13
-          }}>
-            Cod:{product.idProducto}
-          </Typography>
+
+          {product.idProducto ? (
+            <Typography sx={{
+              color: "#828282",
+              fontSize: 13
+            }}>
+              Cod:{product.idProducto}
+            </Typography>
+          ) : (null)}
 
 
 
