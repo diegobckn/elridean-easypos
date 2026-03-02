@@ -35,7 +35,7 @@ import ModelConfig from "../../../Models/ModelConfig";
 import SmallButton from "../../Elements/SmallButton";
 import Sucursal from "../../../Models/Sucursal";
 import TiposPasarela from "../../../definitions/TiposPasarela";
-import BaseConfig, { ModosTrabajoConexion, OrdenListado } from "../../../definitions/BaseConfig";
+import BaseConfig from "../../../definitions/BaseConfig";
 import BoxOptionList from "../BoxOptionList";
 import InputCheckbox from "../../Elements/Compuestos/InputCheckbox";
 import InputCheckboxAutorizar from "../../Elements/Compuestos/InputCheckboxAutorizar";
@@ -48,6 +48,9 @@ import ProductFastSearch from "../../../Models/ProductFastSearch";
 import Product from "../../../Models/Product";
 import AdminStorage from "../../ScreenDialog/AdminStorage";
 import TouchInputName from "../../TouchElements/TouchInputName";
+import ModosTrabajoConexion from "../../../definitions/ModosConexion";
+import TouchInputEmail from "../../TouchElements/TouchInputEmail";
+import BoxElegirSucursalYCaja from "../BoxElegirSucursalYCaja";
 
 const TabGeneral = ({
   onFinish = () => { }
@@ -100,15 +103,12 @@ const TabGeneral = ({
   const [licencia, setLicencia] = useState("");
 
   const [puntoVenta, setPuntoVenta] = useState("-1")
+  const [puntoVentaNombre, setPuntoVentaNombre] = useState("")
   const [sucursal, setSucursal] = useState("-1")
+  const [sucursalNombre, setSucursalNombre] = useState("")
+
   const [afterLogin, setAfterLogin] = useState(null)
 
-  const [sucursalesInfo, setSucursalesInfo] = useState([])
-  const [sucursales, setSucursales] = useState([])
-  const [cargoSucursales, setCargoSucursales] = useState(false)
-  const [seleccionables, setSeleccionables] = useState([])
-  const [cajas, setCajas] = useState([])
-  const [cargoCajas, setCargoCajas] = useState(false)
 
   const [esPantallaLogin, setEsPantallaLogin] = useState(false)
   const [esPantallaVendedorVolante, setEsPantallaVendedorVolante] = useState(false)
@@ -123,119 +123,26 @@ const TabGeneral = ({
 
   const [modoTrabajoConexion, setModoTrabajoConexion] = useState(null)
   const [checkOfertas, setCheckOfertas] = useState(false)
+  const [trabajarConApp, setTrabajarConApp] = useState(false)
 
-  const [verSucursalesMype, setVerSucursalesMype] = useState(false)
+  const [crearProductoNoEncontrado, setCrearProductoNoEncontrado] = useState(false)
+  const [pedirAutorizacionParaAplicarDescuentos, setPedirAutorizacionParaAplicarDescuentos] = useState(false)
+  const [reflejarInfoEspejo, setReflejarInfoEspejo] = useState(false)
 
+  const [descripcionAutomaticaSuspender, setDescripcionAutomaticaSuspender] = useState(false)
 
-  const buscarNombreSucursal = (idSucursal) => {
-    var nombre = ""
-    sucursalesInfo.forEach((sucItem, ix) => {
-      if (sucItem.idSucursal == idSucursal) {
-        nombre = sucItem.descripcionSucursal
-      }
-    })
+  const [enviarEmailInicioSesion, setEnviarEmailInicioSesion] = useState(false)
+  const [enviarEmailInicioCaja, setEnviarEmailInicioCaja] = useState(false)
+  const [enviarEmailCierreCaja, setenviarEmailCierreCaja] = useState(false)
+  const [aQuienEnviaEmails, setaQuienEnviaEmails] = useState("")
 
-    return nombre
-  }
+  const [yaIngresoUnaAutorizacion, setYaIngresoUnaAutorizacion] = useState(false)
+  const [darFocoEnBuscar, setDarFocoEnBuscar] = useState(false)
 
-  const buscarNombreCaja = (idCaja) => {
-    var nombre = ""
-    cajas.forEach((cajaItem, ix) => {
-      if (cajaItem.id == idCaja) {
-        nombre = cajaItem.value
-      }
-    })
+  const [showAdminMem, setShowAdminMem] = useState(false)
 
-    return nombre
-  }
-
-  const cargarSucursales = () => {
-    Sucursal.getAll((responseData) => {
-      setSucursalesInfo(responseData)
-      separarSucursales(responseData)
-
-      if (sucursal === "-1") setSucursal(ModelConfig.get("sucursal"))
-      setCargoSucursales(true)
-    }, (error) => {
-      setCargoSucursales(true)
-    })
-  }
-
-  const cargarTiposSeleccionables = () => {
-    var seleccionables = []
-    const keys = Object.keys(TiposPasarela)
-
-    keys.forEach((key, ix) => {
-      var idx = TiposPasarela[key]
-      if (esSeleccionableTipo(idx)) {
-        seleccionables.push({
-          id: idx,
-          value: key.replaceAll("_", " ")
-        })
-      }
-    })
-
-    setSeleccionables(seleccionables)
-  }
-
-  const separarSucursales = (info) => {
-    console.log("separarSucursales")
-    var sucursalesx = []
-    info.forEach((infoItem, ix) => {
-      var esMype = (infoItem.descripcionSucursal.toLowerCase().indexOf("mype") > -1)
-      if (!esMype || verSucursalesMype) {
-        sucursalesx.push({
-          id: infoItem.idSucursal + "",
-          value: infoItem.descripcionSucursal
-        })
-      } else {
-        console.log("no agrego sucursal de mype", infoItem)
-      }
-    })
-    setSucursales(sucursalesx)
-  }
-
-  const esSeleccionableTipo = (tipo) => {
-    return (
-      tipo == TiposPasarela.CAJA
-      || tipo == TiposPasarela.PREVENTA
-    )
-  }
-
-  const cargarCajas = (idSucursal) => {
-    // console.log("cargarCajas")
-    var cajasx = []
-    if (!sucursalesInfo) return
-    sucursalesInfo.forEach((sucursalItem, ix) => {
-      if (sucursalItem.idSucursal == idSucursal) {
-        sucursalItem.puntoVenta.forEach((cajaItem, ix2) => {
-          if (
-            esSeleccionableTipo(cajaItem.idSucursalPvTipo)
-
-          ) {
-            cajasx.push({
-              id: cajaItem.idCaja + "",
-              value: cajaItem.sPuntoVenta,
-              tipo: cajaItem.idSucursalPvTipo
-            })
-          }
-        })
-      }
-    })
-    setCajas(cajasx)
-    setCargoCajas(true)
-  }
-
-  const checkSeleccionCaja = (caja) => {
-    cajas.forEach((cajaItem, ix) => {
-      if (cajaItem.id == caja) {
-        setAfterLogin(cajaItem.tipo)
-      }
-    })
-    setPuntoVenta(caja)
-  }
-
-
+  const [recargarSucursales, setRecargarSucursales] = useState(false)
+  const [resetSucursal, setResetSucursal] = useState(false)
 
   const loadConfigSesion = () => {
     // console.log("loadConfigSesion")
@@ -250,42 +157,70 @@ const TabGeneral = ({
     setPedirDatosTransferencia(ModelConfig.get("pedirDatosTransferencia"))
     setPagarConCuentaCorriente(ModelConfig.get("pagarConCuentaCorriente"))
     setCantidadProductosBusquedaRapida(ModelConfig.get("cantidadProductosBusquedaRapida"))
+
+    // console.log("get cant bus rapida ", ModelConfig.get("cantidadProductosBusquedaRapida"))
     setConNumeroAtencion(ModelConfig.get("conNumeroAtencion"))
     setModoTrabajoConexion(ModelConfig.get("modoTrabajoConexion"))
     setCheckOfertas(ModelConfig.get("checkOfertas"))
+    setTrabajarConApp(ModelConfig.get("trabajarConApp"))
 
+    setCrearProductoNoEncontrado(ModelConfig.get("crearProductoNoEncontrado"))
+    setPedirAutorizacionParaAplicarDescuentos(ModelConfig.get("pedirAutorizacionParaAplicarDescuentos"))
+    setReflejarInfoEspejo(ModelConfig.get("reflejarInfoEspejo"))
+    setDescripcionAutomaticaSuspender(ModelConfig.get("descripcionAutomaticaSuspender"))
+
+
+    setEnviarEmailInicioSesion(ModelConfig.get("enviarEmailInicioSesion"))
+    setEnviarEmailInicioCaja(ModelConfig.get("enviarEmailInicioCaja"))
+    setenviarEmailCierreCaja(ModelConfig.get("enviarEmailCierreCaja"))
+    setaQuienEnviaEmails(ModelConfig.get("aQuienEnviaEmails"))
+    setDarFocoEnBuscar(ModelConfig.get("darFocoEnBuscar"))
 
   }
 
   const handlerSaveAction = () => {
-    ModelConfig.change("urlBase", urlBase);
-    ModelConfig.change("licencia", licencia);
-
-    ModelConfig.change("pedirDatosTransferencia", pedirDatosTransferencia)
-    ModelConfig.change("pagarConCuentaCorriente", pagarConCuentaCorriente)
+    // console.log("handlerSaveAction")
+    var changes = {
+      "urlBase": urlBase,
+      "licencia": licencia,
+      "pedirDatosTransferencia": pedirDatosTransferencia,
+      "pagarConCuentaCorriente": pagarConCuentaCorriente,
+      "cantidadProductosBusquedaRapida": cantidadProductosBusquedaRapida,
+      "afterLogin": afterLogin,
+      "conNumeroAtencion": conNumeroAtencion,
+      "modoTrabajoConexion": modoTrabajoConexion,
+      "checkOfertas": checkOfertas,
+      "trabajarConApp": trabajarConApp,
+      "crearProductoNoEncontrado": crearProductoNoEncontrado,
+      "pedirAutorizacionParaAplicarDescuentos": pedirAutorizacionParaAplicarDescuentos,
+      "reflejarInfoEspejo": reflejarInfoEspejo,
+      "descripcionAutomaticaSuspender": descripcionAutomaticaSuspender,
+      "enviarEmailInicioSesion": enviarEmailInicioSesion,
+      "enviarEmailInicioCaja": enviarEmailInicioCaja,
+      "enviarEmailCierreCaja": enviarEmailCierreCaja,
+      "aQuienEnviaEmails": aQuienEnviaEmails,
+      "darFocoEnBuscar": darFocoEnBuscar,
+    }
 
     const estamosEnPantallaLogin = window.location.href.indexOf("/login") > -1
     if (estamosEnPantallaLogin) {
-      ModelConfig.change("sucursal", sucursal)
-      ModelConfig.change("sucursalNombre", buscarNombreSucursal(sucursal))
-      ModelConfig.change("puntoVenta", puntoVenta)
-      ModelConfig.change("puntoVentaNombre", buscarNombreCaja(puntoVenta))
+      changes["sucursal"] = sucursal
+      changes["sucursalNombre"] = sucursalNombre
+      changes["puntoVenta"] = puntoVenta
+      changes["puntoVentaNombre"] = puntoVentaNombre
     }
 
-
-    ModelConfig.change("cantidadProductosBusquedaRapida", cantidadProductosBusquedaRapida)
-
-    ModelConfig.change("afterLogin", afterLogin)
     if (!ModelConfig.isEqual("conNumeroAtencion", conNumeroAtencion)) {
       showConfirm("Hay que recargar la pantalla para aplicar los cambios. Desea hacerlo ahora?", () => {
         window.location.href = window.location.href
       })
     }
-    ModelConfig.change("conNumeroAtencion", conNumeroAtencion)
-    ModelConfig.change("modoTrabajoConexion", modoTrabajoConexion)
-    ModelConfig.change("checkOfertas", checkOfertas)
+
+    // console.log("changes", changes)
+    ModelConfig.changeAll(changes)
 
     showMessage("Guardado correctamente")
+    setRecargarSucursales(!recargarSucursales)
     // onFinish()
   }
 
@@ -341,32 +276,15 @@ const TabGeneral = ({
     setEsPantallaVendedorVolante(estamosEnPantallaVenVolante)
 
     if (estamosEnPantallaLogin || estamosEnPantallaVenVolante || ModelConfig.get("sucursal") == -1) {
-      cargarTiposSeleccionables()
       setTimeout(() => {
-        cargarSucursales()
+        setRecargarSucursales(!recargarSucursales)
       }, 100);
     }
   }, [])
 
-  useEffect(() => {
-    cargarCajas(sucursal)
-  }, [sucursal])
-
-  useEffect(() => {
-    if (puntoVenta === "-1" && ModelConfig.get("puntoVenta") != "-1" && cajas.length > 0) {
-      setPuntoVenta(ModelConfig.get("puntoVenta"))
-    }
-    if (sucursal === "-1" && ModelConfig.get("sucursal") != "-1" && sucursales.length > 0) {
-      setSucursal(ModelConfig.get("sucursal"))
-    }
-  }, [sucursales, cajas])
-
-  const [showAdminMem, setShowAdminMem] = useState(false)
 
 
-  useEffect(() => {
-    cargarSucursales()
-  }, [verSucursalesMype])
+
 
   return (
     <Grid container spacing={2}>
@@ -375,7 +293,27 @@ const TabGeneral = ({
           inputState={[urlBase, setUrlBase]}
           label="url base"
           onEnter={() => {
-            handlerSaveAction()
+            // console.log("onEnter")
+            // handlerSaveAction()
+          }}
+
+          onChangeModal={() => {
+            ModelConfig.change("urlBase", urlBase)
+
+            ModelConfig.change("sucursal", "-1")
+            ModelConfig.change("sucursalNombre", "")
+            ModelConfig.change("puntoVenta", "-1")
+            ModelConfig.change("puntoVentaNombre", "")
+
+            // console.log("onChangeModal")
+            setSucursal("-1")
+            setSucursalNombre("")
+            setPuntoVenta("-1")
+            setPuntoVentaNombre("")
+            // handlerSaveAction()
+            setTimeout(() => {
+              setRecargarSucursales(!recargarSucursales)
+            }, 1000);
           }}
         />
       </Grid>
@@ -386,60 +324,23 @@ const TabGeneral = ({
 
       {(esPantallaLogin || esPantallaVendedorVolante || ModelConfig.get("sucursal") == -1) && (
         <>
-          <Grid item xs={12} lg={12}>
-            <Typography>Elegir Sucursal</Typography>
-            <BoxOptionList
-              optionSelected={sucursal}
-              setOptionSelected={(x) => {
-                setSucursal(x)
-                if (!window.sucursalClicked) window.sucursalClicked = 0
-                window.sucursalClicked++
+          <BoxElegirSucursalYCaja
+            visible={true}
+            sucursal={sucursal}
+            setSucursal={setSucursal}
+            caja={puntoVenta}
+            setCaja={setPuntoVenta}
+            refreshSucursales={recargarSucursales}
 
-                if (window.sucursalClicked % 3 == 0) {
-                  window.sucursalClicked = 0
-                  setVerSucursalesMype(!verSucursalesMype)
-                }
+            nombreSucursal={sucursalNombre}
+            setNombreSucursal={setSucursalNombre}
 
-                console.log("window.sucursalClicked", window.sucursalClicked)
-              }}
-              // options = {[{
-              //   "id": 1,
-              //   "value":"Punto de venta"
-              // },{
-              //   "id": 2,
-              //   "value":"Pre Venta"
-              // }]}
-              options={sucursales}
-            />
-          </Grid>
+            nombreCaja={puntoVentaNombre}
+            setNombreCaja={setPuntoVentaNombre}
 
-          <Grid item xs={12} lg={12}>
-            <Typography>Elegir caja</Typography>
-            <BoxOptionList
-              optionSelected={puntoVenta}
-              setOptionSelected={(e) => {
-                checkSeleccionCaja(e)
-              }}
-              // options = {[{
-              //   "id": 1,
-              //   "value":"Punto de venta"
-              // },{
-              //   "id": 2,
-              //   "value":"Pre Venta"
-              // }]}
-              options={cajas}
-            />
-          </Grid>
-
-          <Grid item xs={12} lg={12}>
-            <Typography>Iniciar en</Typography>
-            <BoxOptionList
-              optionSelected={afterLogin}
-              // setOptionSelected={setAfterLogin}
-              setOptionSelected={() => { }}
-              options={seleccionables}
-            />
-          </Grid>
+            afterLogin={afterLogin}
+            setAfterLogin={setAfterLogin}
+          />
         </>
       )}
 
@@ -476,6 +377,44 @@ const TabGeneral = ({
         <InputCheckbox
           inputState={[checkOfertas, setCheckOfertas]}
           label={"Ofertas"}
+        />
+      </Grid>
+
+      <Grid item xs={12} md={12} lg={12}>
+        <InputCheckbox
+          inputState={[trabajarConApp, setTrabajarConApp]}
+          label={"Trabajar con App"}
+        />
+      </Grid>
+      <Grid item xs={12} md={12} lg={12}>
+        <InputCheckbox
+          inputState={[crearProductoNoEncontrado, setCrearProductoNoEncontrado]}
+          label={"Crear Producto No Encontrado"}
+        />
+      </Grid>
+      <Grid item xs={12} md={12} lg={12}>
+        <InputCheckbox
+          inputState={[pedirAutorizacionParaAplicarDescuentos, setPedirAutorizacionParaAplicarDescuentos]}
+          label={"Pedir Autorizacion Para Aplicar Descuentos"}
+        />
+      </Grid>
+      <Grid item xs={12} md={12} lg={12}>
+        <InputCheckbox
+          inputState={[reflejarInfoEspejo, setReflejarInfoEspejo]}
+          label={"Reflejar en espejo"}
+        />
+      </Grid>
+
+      <Grid item xs={12} md={12} lg={12}>
+        <InputCheckbox
+          inputState={[descripcionAutomaticaSuspender, setDescripcionAutomaticaSuspender]}
+          label={"Descripcion Automatica Suspender"}
+        />
+      </Grid>
+      <Grid item xs={12} md={12} lg={12}>
+        <InputCheckbox
+          inputState={[darFocoEnBuscar, setDarFocoEnBuscar]}
+          label={"Dar siempre foco en buscar"}
         />
       </Grid>
 
@@ -528,6 +467,63 @@ const TabGeneral = ({
           setLicencia(BaseConfig.licencia)
         }} />
       </Grid>
+
+
+      <Grid item xs={12} md={12} lg={12}>
+        <Grid container spacing={2} sx={{
+          border: "1px solid #ccc",
+          padding: "10px",
+          marginTop: "20px",
+          marginBottom: "20px",
+        }}>
+          <Grid item xs={12} md={12} lg={12}>
+            <InputCheckboxAutorizar
+              ignorarPorGrupo={yaIngresoUnaAutorizacion}
+              inputState={[enviarEmailInicioSesion, setEnviarEmailInicioSesion]}
+              label={"Enviar email luego de inicio de sesion"}
+              onAuthorize={() => {
+                setYaIngresoUnaAutorizacion(true)
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} md={12} lg={12}>
+            <InputCheckboxAutorizar
+              ignorarPorGrupo={yaIngresoUnaAutorizacion}
+              inputState={[enviarEmailInicioCaja, setEnviarEmailInicioCaja]}
+              label={"Enviar email luego de inicio de caja"}
+              onAuthorize={() => {
+                setYaIngresoUnaAutorizacion(true)
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} md={12} lg={12}>
+            <InputCheckboxAutorizar
+              ignorarPorGrupo={yaIngresoUnaAutorizacion}
+              inputState={[enviarEmailCierreCaja, setenviarEmailCierreCaja]}
+              label={"Enviar email luego de cierre de caja"}
+              onAuthorize={() => {
+                setYaIngresoUnaAutorizacion(true)
+              }}
+            />
+          </Grid>
+
+
+          <Grid item xs={12} sm={12} md={12} lg={12}>
+            <TouchInputEmail
+              disabled={!enviarEmailInicioCaja
+                && !enviarEmailInicioSesion
+                && !enviarEmailCierreCaja}
+              inputState={[aQuienEnviaEmails, setaQuienEnviaEmails]}
+              withLabel={false}
+              label="A quien enviar" />
+          </Grid>
+
+        </Grid>
+      </Grid>
+
+
+
+
 
       <Grid item xs={12} sm={12} md={12} lg={12}>
 
@@ -641,12 +637,13 @@ const TabGeneral = ({
 
         <SmallButton textButton="Guardar" actionButton={() => {
           handlerSaveAction()
-          cargarSucursales()
+          setRecargarSucursales(!recargarSucursales)
         }} />
         <SmallButton textButton="Guardar y Salir" actionButton={() => {
           handlerSaveAction()
           setTimeout(() => {
             onFinish()
+            setYaIngresoUnaAutorizacion(false)
           }, 300);
         }} />
 

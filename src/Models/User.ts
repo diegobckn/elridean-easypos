@@ -3,47 +3,22 @@ import axios from "axios";
 import ModelConfig from './ModelConfig.ts';
 import SoporteTicket from './SoporteTicket.ts';
 import EndPoint from './EndPoint.ts';
+import ModelSingleton from './ModelSingleton.ts';
+import Model from './Model.js';
 
 
-class User {
-    
-    static getInstance() {
-        if (User.instance == null) {
-            User.instance = new User();
-        }
-        
-        return User.instance;
-    }
-    
+class User extends ModelSingleton {
+
+    rut: string = ""
+    codigoUsuario: string | number = ""
+    clave: string = ""
+    codigoSucursal: string = ""
+    puntoVenta: string = ""
+    deudaIds: any = null
+
     constructor() {
+        super()
         this.sesion = new StorageSesion("User");
-    }
-
-    fill(values) {
-        for (var campo in values) {
-            const valor = values[campo]
-            this[campo] = valor;
-        }
-    }
-
-    getFillables() {
-        var values = {};
-        for (var prop in this) {
-            if (typeof (this[prop]) != 'object'
-                && this[prop] != undefined
-            ) {
-                values[prop] = this[prop]
-            }
-        }
-        return values
-    }
-
-
-
-    saveInSesion(data) {
-        this.sesion.guardar(data)
-        // localStorage.setItem('userData', JSON.stringify(data));
-        return data;
     }
 
     getFromSesion() {
@@ -52,7 +27,7 @@ class User {
         // return JSON.parse(dt);
     }
 
-    setRutFrom = (input) => {
+    setRutFrom = (input: string) => {
         if (input.indexOf("-") > -1) {
             this.rut = input;
         } else {
@@ -61,7 +36,7 @@ class User {
         return this.rut;
     }
 
-    setUserCodeFrom = (input) => {
+    setUserCodeFrom = (input: string) => {
         if (input.indexOf("-") == -1) {
             this.codigoUsuario = parseInt(input);
         } else {
@@ -70,11 +45,11 @@ class User {
         return this.codigoUsuario;
     }
 
-    setPassword = (input) => {
+    setPassword = (input: string) => {
         this.clave = input
     }
 
-    static async getByRut(rut, callbackOk, callbackWrong) {
+    static async getByRut(rut: string, callbackOk: any, callbackWrong: any) {
         const configs = await ModelConfig.get()
         var url = configs.urlBase
             + "/api/Usuarios/GetUsuarioByRut"
@@ -86,17 +61,17 @@ class User {
         // console.log("getByRut..")
         // console.log("url..", url)
 
-        await EndPoint.sendGet(url, (responseData, response) => {
+        await EndPoint.sendGet(url, (responseData: any, response: any) => {
             callbackOk(responseData.usuarios, response);
         }, callbackWrong)
     }
 
-    async doLoginInServer(callbackOk, callbackWrong) {
+    async doLoginInServer(callbackOk: any, callbackWrong: any) {
         const configs = ModelConfig.get()
         var url = configs.urlBase
             + "/api/Usuarios/LoginUsuario"
 
-        const data = {
+        const data: any = {
             codigoUsuario: this.codigoUsuario,
             rut: this.rut,
             clave: this.clave,
@@ -105,12 +80,16 @@ class User {
         if (!data.codigoSucursal) data.codigoSucursal = ModelConfig.get("sucursal")
         if (!data.puntoVenta) data.puntoVenta = ModelConfig.get("puntoVenta")
 
-        EndPoint.sendPost(url, data, (responseData, response) => {
+        EndPoint.sendPost(url, data, (responseData: any, response: any) => {
             if (response.data.responseUsuario
                 && response.data.responseUsuario.codigoUsuario != -1
             ) {
                 if (!response.data.responseUsuario.activo) {
-                    callbackOk(responseData);
+                    Model.informeInisioSesion(response.data.responseUsuario, () => {
+                        callbackOk(responseData);
+                    }, () => {
+                        callbackOk(responseData);
+                    })
                 } else {
                     callbackWrong("Usuario activo en otra sesión");
                 }
@@ -122,24 +101,24 @@ class User {
         }, callbackWrong)
     }
 
-    async doLogoutInServer(callbackOk, callbackWrong) {
+    async doLogoutInServer(callbackOk: any, callbackWrong: any) {
         const configs = ModelConfig.get()
         var url = configs.urlBase
             + "/api/Usuarios/LoginUsuarioSetInactivo"
 
-        const data = {
+        const data: any = {
             codigoUsuario: this.codigoUsuario,
         }
 
         if (!data.codigoSucursal) data.codigoSucursal = ModelConfig.get("sucursal")
         if (!data.puntoVenta) data.puntoVenta = ModelConfig.get("puntoVenta")
 
-        EndPoint.sendPost(url, data, (responseData, response) => {
+        EndPoint.sendPost(url, data, (responseData: any, response: any) => {
             callbackOk(response);
         }, callbackWrong)
     }
 
-    async getAllFromServer(callbackOk, callbackWrong) {
+    async getAllFromServer(callbackOk: any, callbackWrong: any) {
         const configs = ModelConfig.get()
         var url = configs.urlBase
             + "/api/Usuarios/GetAllUsuarios"
@@ -147,12 +126,12 @@ class User {
         url += "?codigoSucursal=" + ModelConfig.get("sucursal")
         url += "&puntoVenta=" + ModelConfig.get("puntoVenta")
 
-        EndPoint.sendGet(url, (responseData, response) => {
+        EndPoint.sendGet(url, (responseData: any, response: any) => {
             callbackOk(responseData.usuarios, response);
         }, callbackWrong)
     }
 
-    async getUsuariosDeudas(callbackOk, callbackWrong) {
+    async getUsuariosDeudas(callbackOk: any, callbackWrong: any) {
         const configs = ModelConfig.get()
         var url = configs.urlBase
             + "/api/Usuarios/GetUsuariosDeudas"
@@ -160,13 +139,13 @@ class User {
         url += "?codigoSucursal=" + ModelConfig.get("sucursal")
         url += "&puntoVenta=" + ModelConfig.get("puntoVenta")
 
-        EndPoint.sendGet(url, (responseData, response) => {
+        EndPoint.sendGet(url, (responseData: any, response: any) => {
             callbackOk(responseData.usuarioDeudas, response);
         }, callbackWrong)
     }
 
-    async pargarDeudas(callbackOk, callbackWrong) {
-        const data = this.getFillables()
+    async pargarDeudas(callbackOk: any, callbackWrong: any) {
+        const data: any = this.getFillables()
         if (data.idUsuario == undefined) { console.log("falta completar idUsuario"); return }
         if (data.montoPagado == undefined) { console.log("faltan completar montoPagado"); return }
         if (data.metodoPago == undefined) { console.log("faltan completar metodoPago"); return }
@@ -181,7 +160,7 @@ class User {
         if (!data.codigoSucursal) data.codigoSucursal = ModelConfig.get("sucursal")
         if (!data.puntoVenta) data.puntoVenta = ModelConfig.get("puntoVenta")
 
-        EndPoint.sendPost(url, data, (responseData, response) => {
+        EndPoint.sendPost(url, data, (responseData: any, response: any) => {
             callbackOk(responseData, response);
         }, callbackWrong)
     }

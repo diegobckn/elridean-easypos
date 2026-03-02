@@ -44,11 +44,11 @@ import ProductCodeStack from "../../Models/ProductCodeStack";
 import Balanza from "../../Models/Balanza";
 import BalanzaUnidad from "../../Models/BalanzaUnidad";
 import dayjs from "dayjs";
-import { OrdenListado } from "../../definitions/BaseConfig";
 import CardSemaforo from "./CardSemaforo";
 import RefreshInfoControl from "./RefreshInfoControl";
 import Model from "../../Models/Model";
 import Sales from "../../Models/Sales";
+import OrdenListado from "../../definitions/OrdenesListado";
 
 const BoxProductsEspejo = ({ }) => {
   const {

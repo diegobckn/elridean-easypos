@@ -1,4 +1,4 @@
-import BaseConfig, { EmitirDetalle, ModosImpresion } from "../definitions/BaseConfig.ts";
+import BaseConfig from "../definitions/BaseConfig.ts";
 import ModelConfig from './ModelConfig.ts';
 import System from '../Helpers/System.ts';
 import LoopProperties from '../Helpers/LoopProperties.ts';
@@ -7,6 +7,8 @@ import PagoBoleta from './PagoBoleta.ts';
 import PrinterServer from './PrinterServer.ts';
 
 import Logo from './../assets/logo-print.png'
+import EmitirDetalle from "../definitions/EmisionesDetalle.ts";
+import ModosImpresion from "../definitions/ModosImpresion.ts";
 
 
 class PrinterIframe {
@@ -20,7 +22,7 @@ class PrinterIframe {
     static arrPrintsRepPints = []
 
     static afterPrintFunction = () => { }
-    static preguntaFuncion = (txt, callyes, callno) => { }
+    static preguntaFuncion = (txt:string, callyes:any, callno:any) => { }
 
     static getInstance(): PrinterIframe {
         if (PrinterIframe.instance == null) {
@@ -30,7 +32,7 @@ class PrinterIframe {
         return PrinterIframe.instance;
     }
 
-    static printSimple(imprimirTxt) {
+    static printSimple(imprimirTxt:string) {
         if (imprimirTxt === "") return
         // console.log("print simple")
         // console.log(imprimirTxt)
@@ -49,11 +51,11 @@ class PrinterIframe {
         );
     }
 
-    static generateQrPreventaOffline(requestInfo, funcionCrearQr) {
+    static generateQrPreventaOffline(requestInfo:any, funcionCrearQr:any) {
         var content = ""
 
         var prodsTxt = "";
-        requestInfo.products.forEach(prod => {
+        requestInfo.products.forEach((prod:any) => {
             if (prodsTxt != "") prodsTxt += ";;"
             prodsTxt += prod.codbarra + "," + prod.cantidad
         })
@@ -96,7 +98,7 @@ class PrinterIframe {
         this.printSimple(content)
     }
 
-    static printFlat(imprimirTxt) {
+    static printFlat(imprimirTxt:string) {
         if (imprimirTxt.trim() == "") return
 
         // if (imprimirTxt.indexOf("COMANDA") > -1) return
@@ -138,7 +140,7 @@ class PrinterIframe {
             }
         }
 
-        keyItems.forEach((itPrint) => {
+        keyItems.forEach((itPrint:any) => {
             if (itPrint != undefined && !does) {
                 does = true
                 // console.log("do print item: ")
@@ -158,7 +160,7 @@ class PrinterIframe {
 
 
 
-    static checkObjectIfNeed(objectInfo, functionAfter, adicionalInfo = null) {
+    static checkObjectIfNeed(objectInfo:any, functionAfter:any, adicionalInfo = null) {
         // console.log("checkObjectIfNeed")
         const listadoFiltrado: any = {}
         const listadoPosible: any = {}
@@ -185,7 +187,7 @@ class PrinterIframe {
                 const trabajaConComanda = ModelConfig.get("trabajarConComanda")
                 const imprimirPapelComanda = ModelConfig.get("imprimirPapelComanda")
 
-                new LoopProperties(listadoPosible, (prop, value, looper) => {
+                new LoopProperties(listadoPosible, (prop:string, value:any, looper:LoopProperties) => {
                     // console.log("objectInfo[itPrint]", objectInfo[key][itPrint])
                     // console.log("preparando para imprimir ", prop)
 
@@ -263,9 +265,9 @@ class PrinterIframe {
 
 
 
-    static printAll(respuestaServidor, rePrintsTotal = 1, adicionalInfo: any = null, callbackEnd = null) {
+    static printAll(respuestaServidor:any, rePrintsTotal = 1, adicionalInfo: any = null, callbackEnd = null) {
         // console.log("printAll de Printer predeterminada")
-        this.checkObjectIfNeed(respuestaServidor, (objFiltred) => {
+        this.checkObjectIfNeed(respuestaServidor, (objFiltred:any) => {
             // console.log("despues de checkObjectIfNeed..objFiltred", objFiltred)
             if (Object.keys(objFiltred).length > 0) {
                 PrinterIframe.arrPrints = objFiltred
@@ -285,7 +287,7 @@ class PrinterIframe {
 
 
 
-    static prepareContent(requestInfo, createQrString) {
+    static prepareContent(requestInfo:any, createQrString:any) {
         // console.log("prepareContent")
         // console.log("content", requestInfo)
         const trabajaConComanda = ModelConfig.get("trabajarConComanda")
@@ -326,7 +328,7 @@ class PrinterIframe {
     }
 
 
-    static printContent(contenido, functionConfirm, showAlert, adicionalInfo = null, callbackEnd = null) {
+    static printContent(contenido:any, functionConfirm:any, showAlert:any, adicionalInfo = null, callbackEnd = null) {
         const queImpresoraUsa = ModelConfig.get("modoImpresion")
         // console.log("printContent")
         // console.log("contenido", contenido)
@@ -352,14 +354,14 @@ class PrinterIframe {
                 setTimeout(() => {
                     PrinterServer.printAll({
                         imprimirComanda: contenido.imprimir.imprimirComanda
-                    }, (a) => {
+                    }, (a:any) => {
                     }, showAlert, adicionalInfo)
                 }, 3000);
             }
         } else {
             // console.log("imprimiendo por servidor")
             PrinterServer.preguntaFuncion = functionConfirm
-            PrinterServer.printAll(contenido.imprimir, (a) => {
+            PrinterServer.printAll(contenido.imprimir, (a:any) => {
             }, showAlert, adicionalInfo)
 
             const impresoraComanda = ModelConfig.get("modoImpresionComanda")
@@ -388,7 +390,7 @@ class PrinterIframe {
         createQrString,
         adicionalInfo = null,
         callbackEnd = null
-    }) {
+    }:any) {
         const toPrint: any = this.prepareContent(content, createQrString)
         this.printContent(toPrint, functionConfirm, showAlert, adicionalInfo, callbackEnd)
     }

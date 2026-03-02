@@ -48,7 +48,7 @@ import ModelConfig from "../../Models/ModelConfig";
 import UserEvent from "../../Models/UserEvent";
 import Product from "../../Models/Product";
 import BoxMultiPago from "./BoxMultiPago";
-import Oferta5 from "../../Models/Oferta5";
+import Ofertas from "../../Models/Ofertas";
 import Model from "../../Models/Model";
 import IngresarTexto from "../ScreenDialog/IngresarTexto";
 import Sales from "../../Models/Sales";
@@ -56,9 +56,10 @@ import Comercio from "../../Models/Comercio";
 import Retiro from "../../Models/Retiro";
 import SalesOffline from "../../Models/SalesOffline";
 import OfflineAutoIncrement from "../../Models/OfflineAutoIncrement";
-import { ModosTrabajoConexion } from "../../definitions/BaseConfig";
 import PrinterPaper from "../../Models/PrinterPaper";
 import Descuento from "../ScreenDialog/Descuento";
+import ModosTrabajoConexion from "../../definitions/ModosConexion";
+import ParaEnviar from "../../Models/ParaEnviar";
 
 const BoxBoleta = ({
   onClose,
@@ -125,6 +126,9 @@ const BoxBoleta = ({
 
   const [tecladoBloqueado, setTecladoBloqueado] = useState(false);
 
+  const [productsConOfertas, setProductsConOfertas] = useState([]);
+
+
   //preparamos los valores unicos para guardar la venta
   const [hashEnvase, setHashEnvase] = useState(null);
   const [nFolioBoleta, setNFolioBoleta] = useState(null);
@@ -137,6 +141,7 @@ const BoxBoleta = ({
 
   useEffect(() => {
 
+    if (!openDialog) return
     PrinterPaper.getInstance().loadWidthFromSesion()
 
     const offAI = OfflineAutoIncrement.getInstance()
@@ -163,116 +168,29 @@ const BoxBoleta = ({
     }, (err) => {
     }, true);
 
-  }, [])
-
-  const revisarOfertas = (ofertas) => {
-    if (ofertas.length > 0) {
-      var copiaProductos = salesData
-      var resultadoOfertas = {
-        productosQueAplican: [],
-        productosQueNoAplican: copiaProductos
-      }
-
-      ofertas.forEach((ofer, ix) => {
-        // if (ofer.tipo === 5) {//temporalmente, luego activar
+    setTrabajaConComanda(ModelConfig.get("trabajarConComanda"))
+  }, [openDialog])
 
 
-        var of = new Oferta5();
-        of.setInfo(ofer)
-
-
-        while (of.debeAplicar(resultadoOfertas.productosQueNoAplican)) {
-          const resultadoAplicar = of.aplicar(resultadoOfertas.productosQueNoAplican)
-          // console.log("luego de aplicar queda asi", resultadoAplicar)
-
-          resultadoOfertas.productosQueAplican =
-            resultadoOfertas.productosQueAplican.concat(resultadoAplicar.productosQueAplican)
-          resultadoOfertas.productosQueNoAplican =
-            resultadoAplicar.productosQueNoAplican
-
-        }
-        // console.log("")
-        // console.log("")
-        // console.log("")
-        // console.log("resultado final", resultadoOfertas)
-
-        var totalVentasx = 0
-        var productosVendidosx = []
-
-        resultadoOfertas.productosQueAplican.forEach((prod) => {
-          totalVentasx += prod.total
-          productosVendidosx.push(prod)
-        })
-
-        resultadoOfertas.productosQueNoAplican.forEach((prod) => {
-          totalVentasx += prod.total
-          productosVendidosx.push(prod)
-        })
-
-        // console.log("total de las ventas aplicando ofertas es $", totalVentasx)
-        setTotalVentas(totalVentasx)
-        setProductosVendidos(productosVendidosx)
-        // }else{//temporalmente, luego activar
-        // setProductosVendidos(salesData)//temporalmente, luego activar
-        // setTotalVentas(grandTotal)//temporalmente, luego activar
-        // }
-      })
-    } else {
-      setProductosVendidos(salesData)
-      setTotalVentas(grandTotal)
-    }
-  }
 
   const aplicarOfertas = () => {
-    // console.log("aplicando ofertas")
+    setProductsConOfertas([])
 
-    if (!ModelConfig.get("checkOfertas")) {
+    Ofertas.aplicarTodas(salesData, (resultadoOfertas, totalConOfertas, productoVendidosConOfertas) => {
+      // AGRUPAMOS
+
+      setProductosVendidos(System.clone(productoVendidosConOfertas))
+      setTotalVentas(totalConOfertas + 0)
+
+      Ofertas.calcularDescuentosFinales(resultadoOfertas, (prodConOfer, totalDescuentos) => {
+        setProductsConOfertas(prodConOfer)
+        console.log("prodConOfer", prodConOfer)
+      })
+
+    }, () => {
       setProductosVendidos(salesData)
       setTotalVentas(grandTotal)
-      return
-    }
-    const modoTrabajoConexion = ModelConfig.get("modoTrabajoConexion")
-
-    if (
-      (modoTrabajoConexion == ModosTrabajoConexion.OFFLINE_INTENTAR_ENVIAR
-        || modoTrabajoConexion == ModosTrabajoConexion.SOLO_OFFLINE)
-      && Oferta5.session.hasOne()
-    ) {
-      revisarOfertas(Oferta5.session.cargar(1))
-      return
-    }
-
-    Model.getOfertas((ofertas) => {
-      Oferta5.guardarOffline(ofertas)
-      revisarOfertas(ofertas)
-    }, () => {
-
-      if (
-        (modoTrabajoConexion == ModosTrabajoConexion.OFFLINE_INTENTAR_ENVIAR
-          || modoTrabajoConexion == ModosTrabajoConexion.SOLO_OFFLINE)
-        && Oferta5.session.hasOne()
-      ) {
-        revisarOfertas(Oferta5.session.cargar(1))
-      } else {
-        setProductosVendidos(salesData)
-        setTotalVentas(grandTotal)
-      }
     })
-
-
-    // Comercio.getServerImpresionConfigs((serverImpresionConfigs) => {
-    //   serverImpresionConfigs.forEach((impresion) => {
-    //     if (
-    //       impresion.grupo === "Ticket"
-    //       && impresion.entrada === "ImprimirComanda"
-    //       && impresion.valor === "SI"
-    //     ) {
-    //       setTrabajaConComanda(true)
-    //     }
-    //   })
-    // }, () => { })
-
-    setTrabajaConComanda(ModelConfig.get("trabajarConComanda"))
   }
 
   // ACCIONES
@@ -395,6 +313,7 @@ const BoxBoleta = ({
       setSelectedUser(null);
       setTextSearchProducts("")
       setCliente(null)
+      Client.getInstance().sesion.truncate()
       onClose()
     }
 
@@ -440,7 +359,9 @@ const BoxBoleta = ({
         setLoading(false);
       }, 500);
 
-
+      // console.log("cliente", cliente)
+      // console.log("cliente sesion", Client.getInstance().sesion.cargar(1))
+      // setCliente(null)
     }
 
 
@@ -485,15 +406,30 @@ const BoxBoleta = ({
       }
     }
 
+    const itemConDescuentos = []
+    if (productsConOfertas.length > 0) {
+      productsConOfertas.forEach((proConOfer) => {
+        itemConDescuentos.push({
+          codbarra: proConOfer.idProducto,
+          descuento: proConOfer.elDescuento,
+          codigoOferta: proConOfer.ofertaAplicada.codigoOferta
+        })
+      })
+      requestBody.productsConDescuentos = itemConDescuentos
+    } else {
+      requestBody.productsConDescuentos = itemConDescuentos
+    }
 
     if (
       modoTrabajoConexion == ModosTrabajoConexion.OFFLINE_INTENTAR_ENVIAR
-      && requestBody.queOperacionHace != "Boleta"
+      // && requestBody.queOperacionHace != "Boleta"
     ) {
       console.log("debeActualizar", debeActualizar)
       OfflineAutoIncrement.getInstance().actualizarEnSesion(debeActualizar, () => {
         console.log("luego de actualizar en sesion")
         setListSalesOffline(SalesOffline.add(requestBody))
+        // ParaEnviar.agregar("", requestBody, "", ParaEnviar.TIPO.VENTA_TICKET)
+
         setUltimoVuelto(vuelto)
 
         const response = {}
@@ -523,6 +459,8 @@ const BoxBoleta = ({
       console.log("debeActualizar", debeActualizar)
       OfflineAutoIncrement.getInstance().actualizarEnSesion(debeActualizar, () => {
         setListSalesOffline(SalesOffline.add(requestBody))
+        // ParaEnviar.agregar("", requestBody, "", ParaEnviar.TIPO.VENTA_TICKET)
+
 
         const response = {}
         if (response.imprimirResponse == undefined) {
@@ -540,6 +478,7 @@ const BoxBoleta = ({
         showAlert("No se pudo guardar la venta: ", err)
       })
     } else {
+      //MODO ONLINE
       setLoading(true);
       showLoading("Realizando el pago")
       setLoading(false);

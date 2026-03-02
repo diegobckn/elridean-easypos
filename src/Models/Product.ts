@@ -1,22 +1,22 @@
 import StorageSesion from '../Helpers/StorageSesion.ts';
 import IProduct from '../Types/IProduct.ts';
 import Model from './Model';
-import BaseConfig, { ModosTrabajoConexion } from "../definitions/BaseConfig.ts";
+import BaseConfig from "../definitions/BaseConfig.ts";
 import axios from 'axios';
 import ModelConfig from './ModelConfig.ts';
 import EndPoint from './EndPoint.ts';
 import ModelSingleton from './ModelSingleton.ts';
 import ParaEnviar from './ParaEnviar.ts';
 import System from '../Helpers/System.ts';
+import ModosTrabajoConexion from '../definitions/ModosConexion.ts';
+import Shop from './Shop.ts';
+import Client from './Client.ts';
 
 
 class Product extends ModelSingleton {
-
-    idProducto: number
-    description: string | null
-    nombre: string | null
-    price: number | undefined
-    priceVenta: number | undefined
+    idProducto: number = 0
+    description: string | null = ""
+    nombre: string | null = ""
 
     precioCosto: string | null | undefined;
 
@@ -24,7 +24,13 @@ class Product extends ModelSingleton {
 
     productosOffline: Product[] = []
 
-    static logicaRedondeoUltimoDigito(valor) {
+    constructor() {
+        super()
+        this.sesion = new StorageSesion("productos");
+    }
+
+
+    static logicaRedondeoUltimoDigito(valor: number) {
         const totalStr = valor + ""
         var ultTotalStr = ""
         if (totalStr.indexOf(".") > -1) {
@@ -49,7 +55,7 @@ class Product extends ModelSingleton {
     }
 
     //para redondear el vuelto por ejemplo
-    static logicaInversaRedondeoUltimoDigito(valor) {
+    static logicaInversaRedondeoUltimoDigito(valor: number) {
         const totalStr = valor + ""
         var ultTotalStr = ""
         if (totalStr.indexOf(".") > -1) {
@@ -71,17 +77,19 @@ class Product extends ModelSingleton {
         }
     }
 
-    async getAll(callbackOk, callbackWrong) {
+    async getAll(callbackOk: any, callbackWrong: any) {
         var url = ModelConfig.get("urlBase") + "/api/ProductosTmp/GetProductos"
 
-        EndPoint.sendGet(url, (responseData, response) => {
+        EndPoint.sendGet(url, (responseData: any, response: any) => {
             callbackOk(responseData.productos, response);
         }, callbackWrong)
     }
 
-    async almacenarParaOffline(callbackOk, callbackWrong) {
+    async almacenarParaOffline(callbackOk: any, callbackWrong: any) {
+        console.log("almacenarParaOffline")
         var me = this
-        this.getAll((prods, resp) => {
+        console.log("me.sesion", me.sesion)
+        this.getAll((prods: any, resp: any) => {
             me.sesion.guardar({
                 id: 1,
                 productos: prods
@@ -100,23 +108,23 @@ class Product extends ModelSingleton {
         return []
     }
 
-    async buscarPorNombreOffline(nombreBuscar, callbackOk, callbackWrong) {
+    async buscarPorNombreOffline(nombreBuscar: any, callbackOk: any, callbackWrong: any) {
         if (nombreBuscar.length < 3) {
             callbackOk([])
             return
         }
         if (Product.enviando) {
-            console.log("enviando en true.. saliendo")
+            // console.log("enviando en true.. saliendo")
             return
         }
 
-        console.log("buscarPorNombreOffline")
+        // console.log("buscarPorNombreOffline")
         if (this.productosOffline.length < 1 && this.sesion.hasOne()) {
             this.loadFromSesion()
         }
 
         if (this.productosOffline.length > 0) {
-            console.log("hay productos")
+            // console.log("hay productos")
             const coinciden: any[] = []
             Product.enviando = true
             const buscarLower = nombreBuscar.toLocaleLowerCase()
@@ -129,19 +137,19 @@ class Product extends ModelSingleton {
                 }
             })
             Product.enviando = false
-            console.log("coinciden", coinciden)
+            // console.log("coinciden", coinciden)
             callbackOk(coinciden)
         } else {
-            console.log("no hay productos")
+            // console.log("no hay productos")
             callbackWrong("No hay productos descargados para trabajar offline")
         }
     }
 
-    async buscarPorCodBarraOffline(codigoBuscar, callbackOk, callbackWrong) {
+    async buscarPorCodBarraOffline(codigoBuscar: number, callbackOk: any, callbackWrong: any) {
         // console.log("buscarPorCodBarraOffline")
         // console.log("Product.enviando", Product.enviando)
         if (Product.enviando) {
-            console.log("enviando en true.. saliendo")
+            // console.log("enviando en true.. saliendo")
             return
         }
         // console.log("buscarPorCodBarraOffline2")
@@ -164,7 +172,7 @@ class Product extends ModelSingleton {
             })
             setTimeout(() => {
                 Product.enviando = false
-                console.log("listo")
+                // console.log("listo")
             }, 300);
             // console.log("coinciden", coinciden)
             callbackOk(coinciden)
@@ -175,7 +183,7 @@ class Product extends ModelSingleton {
     }
 
 
-    async findByDescription({ description, codigoCliente }, callbackOk, callbackWrong) {
+    async findByDescription({ description, codigoCliente }: any, callbackOk: any, callbackWrong: any) {
         const configs = ModelConfig.get()
         var url = configs.urlBase +
             "/api/ProductosTmp/GetProductosByDescripcion?descripcion=" + (description + "")
@@ -185,7 +193,7 @@ class Product extends ModelSingleton {
         url += "&codigoSucursal=" + ModelConfig.get("sucursal")
         url += "&puntoVenta=" + ModelConfig.get("puntoVenta")
 
-        EndPoint.sendGet(url, (responseData, response) => {
+        EndPoint.sendGet(url, (responseData: any, response: any) => {
             callbackOk(response.data.productos, response);
         }, callbackWrong)
     }
@@ -195,7 +203,7 @@ class Product extends ModelSingleton {
         codigoCliente,
         canPorPagina = 10,
         pagina = 1
-    }, callbackOk, callbackWrong) {
+    }: any, callbackOk: any, callbackWrong: any) {
         const configs = ModelConfig.get()
         var url = configs.urlBase +
             "/api/ProductosTmp/GetProductosByDescripcionPaginado?descripcion=" + (description + "")
@@ -210,17 +218,17 @@ class Product extends ModelSingleton {
 
         const modo = ModelConfig.get("modoTrabajoConexion")
 
-        const revisarOff = (err) => {
+        const revisarOff = (err: any) => {
             // buscamos offline
-            console.log("modo", modo)
+            // console.log("modo", modo)
 
             if (
                 modo == ModosTrabajoConexion.SOLO_OFFLINE
                 || modo == ModosTrabajoConexion.OFFLINE_INTENTAR_ENVIAR
                 || modo == ModosTrabajoConexion.PREGUNTAR
             ) {
-                console.log("buscar offline")
-                this.buscarPorNombreOffline(description, (dataProds) => {
+                // console.log("buscar offline")
+                this.buscarPorNombreOffline(description, (dataProds: any) => {
                     callbackOk(dataProds, {
                         data: {
                             cantidadRegistros: dataProds.length,
@@ -234,29 +242,29 @@ class Product extends ModelSingleton {
         }
 
         if (modo == ModosTrabajoConexion.SOLO_OFFLINE) {
-            console.log("buscar offline")
-            this.buscarPorNombreOffline(description, (dataProds) => {
+            // console.log("buscar offline")
+            this.buscarPorNombreOffline(description, (dataProds: any) => {
                 callbackOk(dataProds, {
                     data: {
                         cantidadRegistros: dataProds.length,
                         productos: dataProds
                     }
                 })
-            }, (err) => {
-                EndPoint.sendGet(url, (responseData, response) => {
+            }, (err: any) => {
+                EndPoint.sendGet(url, (responseData: any, response: any) => {
                     callbackOk(response.data.productos, response);
                 }, revisarOff)
             })
         } else {
-            EndPoint.sendGet(url, (responseData, response) => {
+            EndPoint.sendGet(url, (responseData: any, response: any) => {
                 callbackOk(response.data.productos, response);
-            }, (err) => {
+            }, (err: any) => {
                 revisarOff(err)
             })
         }
     }
 
-    async findPreVenta(data, callbackOk, callbackWrong) {
+    async findPreVenta(data: any, callbackOk: any, callbackWrong: any) {
         if (Product.enviando) return
 
         Product.enviando = true
@@ -268,79 +276,23 @@ class Product extends ModelSingleton {
         if (!data.puntoVenta) data.puntoVenta = ModelConfig.get("puntoVenta")
 
 
-        EndPoint.sendPost(url, data, (responseData, response) => {
+        EndPoint.sendPost(url, data, (responseData: any, response: any) => {
             if (response.data.preventa.length > 0) {
                 callbackOk(response.data.preventa[0].products, response.data);
             } else {
                 callbackWrong("respuesta incorrecta del servidor")
             }
             Product.enviando = false
-        }, (err) => {
+        }, (err: any) => {
             Product.enviando = false
             callbackWrong(err)
         })
     }
 
-    async findByCodigo({ codigoProducto, codigoCliente }, callbackOk, callbackWrong) {
-        const configs = ModelConfig.get()
-        var url = configs.urlBase +
-            "/api/ProductosTmp/GetProductosByCodigo?idproducto=" + codigoProducto
-        if (codigoCliente) {
-            url += "&codigoCliente=" + codigoCliente
-        }
-
-        url += "&codigoSucursal=" + ModelConfig.get("sucursal")
-        url += "&puntoVenta=" + ModelConfig.get("puntoVenta")
-
-
-        const modo = ModelConfig.get("modoTrabajoConexion")
-        console.log("modo", modo)
-
-        if (
-            modo == ModosTrabajoConexion.SOLO_OFFLINE
-            || modo == ModosTrabajoConexion.OFFLINE_INTENTAR_ENVIAR
-        ) {
-            console.log("buscar offline")
-            this.buscarPorCodBarraOffline(codigoProducto, (dataProds) => {
-                callbackOk(dataProds, {
-                    data: {
-                        cantidadRegistros: dataProds.length,
-                        productos: dataProds
-                    }
-                })
-            }, () => { })
-        }
-
-        EndPoint.sendGet(url, (responseData, response) => {
-            callbackOk(response.data.productos, response);
-        }, (err) => {
-            // buscamos offline
-            const modo = ModelConfig.get("modoTrabajoConexion")
-            console.log("modo", modo)
-
-            if (
-                modo == ModosTrabajoConexion.SOLO_OFFLINE
-                || modo == ModosTrabajoConexion.OFFLINE_INTENTAR_ENVIAR
-            ) {
-                console.log("buscar offline")
-                this.buscarPorCodBarraOffline(codigoProducto, (dataProds) => {
-                    callbackOk(dataProds, {
-                        data: {
-                            cantidadRegistros: dataProds.length,
-                            productos: dataProds
-                        }
-                    })
-                }, callbackWrong)
-            } else {
-                callbackWrong(err)
-            }
-        })
-    }
-
-    async findByCodigoBarras({ codigoProducto, codigoCliente }, callbackOk, callbackWrong, soloOnline = false) {
-        console.log("findByCodigoBarras codigoProducto", codigoProducto + "")
+    async findByCodigoBarras({ codigoProducto, codigoCliente }: any, callbackOk: any, callbackWrong: any, soloOnline = false) {
+        // console.log("findByCodigoBarras codigoProducto", codigoProducto + "")
         if (Product.enviando) {
-            console.log("saliendo porque ya esta enviando")
+            // console.log("saliendo porque ya esta enviando")
             return
         }
 
@@ -350,6 +302,12 @@ class Product extends ModelSingleton {
         const configs = ModelConfig.get()
         var url = configs.urlBase +
             "/api/ProductosTmp/GetProductosByCodigoBarra?codbarra=" + codigoProducto
+
+        if (!codigoCliente && Client.getInstance().sesion.hasOne()) {
+            const clt = Client.getInstance().getFromSesion()
+            console.log("clt", clt)
+            codigoCliente = clt.codigoCliente
+        }
         if (codigoCliente) {
             url += "&codigoCliente=" + codigoCliente
         }
@@ -361,15 +319,15 @@ class Product extends ModelSingleton {
         if (!soloOnline) {
             Product.enviando = false
             const modo = ModelConfig.get("modoTrabajoConexion")
-            console.log("modo", modo)
+            // console.log("modo", modo)
 
             if (
                 modo == ModosTrabajoConexion.SOLO_OFFLINE
                 || modo == ModosTrabajoConexion.OFFLINE_INTENTAR_ENVIAR
             ) {
-                console.log("buscar offline")
+                // console.log("buscar offline")
                 var encontroOffline = false
-                await this.buscarPorCodBarraOffline(codigoProducto, (dataProds) => {
+                await this.buscarPorCodBarraOffline(codigoProducto, (dataProds: any) => {
                     callbackOk(dataProds, {
                         data: {
                             cantidadRegistros: dataProds.length,
@@ -383,19 +341,19 @@ class Product extends ModelSingleton {
                 },)
 
                 if (encontroOffline) {
-                    console.log("return de find by codigo barras..encontro algo con ", codigoProducto)
+                    // console.log("return de find by codigo barras..encontro algo con ", codigoProducto)
                     return
                 }
 
             }
         }
 
-        console.log("sigo con busqueda con conexion")
+        // console.log("sigo con busqueda con conexion")
 
-        EndPoint.sendGet(url, (responseData, response) => {
+        EndPoint.sendGet(url, (responseData: any, response: any) => {
             callbackOk(responseData.productos, response);
             Product.enviando = false
-        }, (err) => {
+        }, (err: any) => {
             // buscamos offline
             Product.enviando = false
             const modo = ModelConfig.get("modoTrabajoConexion")
@@ -405,8 +363,8 @@ class Product extends ModelSingleton {
                 modo == ModosTrabajoConexion.SOLO_OFFLINE
                 || modo == ModosTrabajoConexion.OFFLINE_INTENTAR_ENVIAR
             ) {
-                console.log("buscar offline")
-                this.buscarPorCodBarraOffline(codigoProducto, (dataProds) => {
+                // console.log("buscar offline")
+                this.buscarPorCodBarraOffline(codigoProducto, (dataProds: any) => {
                     callbackOk(dataProds, {
                         data: {
                             cantidadRegistros: dataProds.length,
@@ -421,7 +379,7 @@ class Product extends ModelSingleton {
     }
 
 
-    async getCategories(callbackOk, callbackWrong) {
+    async getCategories(callbackOk: any, callbackWrong: any) {
         const configs = ModelConfig.get()
         var url = configs.urlBase
             + "/api/NivelMercadoLogicos/GetAllCategorias"
@@ -430,13 +388,13 @@ class Product extends ModelSingleton {
         url += "&puntoVenta=" + ModelConfig.get("puntoVenta")
 
 
-        EndPoint.sendGet(url, (responseData, response) => {
+        EndPoint.sendGet(url, (responseData: any, response: any) => {
             callbackOk(response.data.categorias, response);
         }, callbackWrong)
     }
 
 
-    async getSubCategories(categoriaId, callbackOk, callbackWrong) {
+    async getSubCategories(categoriaId: number, callbackOk: any, callbackWrong: any) {
         const configs = ModelConfig.get()
         var url = configs.urlBase
             + "/api/NivelMercadoLogicos/GetSubCategoriaByIdCategoria?CategoriaID=" + categoriaId
@@ -447,7 +405,7 @@ class Product extends ModelSingleton {
             url
         );
 
-        EndPoint.sendGet(url, (responseData, response) => {
+        EndPoint.sendGet(url, (responseData: any, response: any) => {
             callbackOk(responseData.subCategorias, response);
         }, callbackWrong)
 
@@ -457,7 +415,7 @@ class Product extends ModelSingleton {
     async getFamiliaBySubCat({
         categoryId,
         subcategoryId
-    }, callbackOk, callbackWrong) {
+    }: any, callbackOk: any, callbackWrong: any) {
         const configs = ModelConfig.get()
         var url = configs.urlBase
             + "/api/NivelMercadoLogicos/GetFamiliaByIdSubCategoria?" +
@@ -468,7 +426,7 @@ class Product extends ModelSingleton {
         url += "&puntoVenta=" + ModelConfig.get("puntoVenta")
 
 
-        EndPoint.sendGet(url, (responseData, response) => {
+        EndPoint.sendGet(url, (responseData: any, response: any) => {
             callbackOk(responseData.familias, response);
         }, callbackWrong)
     }
@@ -477,7 +435,7 @@ class Product extends ModelSingleton {
         categoryId,
         subcategoryId,
         familyId
-    }, callbackOk, callbackWrong) {
+    }: any, callbackOk: any, callbackWrong: any) {
         const configs = ModelConfig.get()
         var url = configs.urlBase
             + "/api/NivelMercadoLogicos/GetSubFamiliaByIdFamilia?" +
@@ -488,7 +446,7 @@ class Product extends ModelSingleton {
         url += "&codigoSucursal=" + ModelConfig.get("sucursal")
         url += "&puntoVenta=" + ModelConfig.get("puntoVenta")
 
-        EndPoint.sendGet(url, (responseData, response) => {
+        EndPoint.sendGet(url, (responseData: any, response: any) => {
             callbackOk(response.data.subFamilias, response);
         }, callbackWrong)
     }
@@ -498,7 +456,7 @@ class Product extends ModelSingleton {
         subcatId,
         famId,
         subFamId
-    }, callbackOk, callbackWrong) {
+    }: any, callbackOk: any, callbackWrong: any) {
 
         if (!catId) catId = 1
         if (!subcatId) subcatId = 1
@@ -512,26 +470,66 @@ class Product extends ModelSingleton {
         url += "&codigoSucursal=" + ModelConfig.get("sucursal")
         url += "&puntoVenta=" + ModelConfig.get("puntoVenta")
 
-        EndPoint.sendGet(url, (responseData, response) => {
-            callbackOk(responseData.productos, response);
-        }, callbackWrong)
+
+        const modo = ModelConfig.get("modoTrabajoConexion")
+        // console.log("modo", modo)
+
+        if (
+            modo == ModosTrabajoConexion.SOLO_OFFLINE
+            || modo == ModosTrabajoConexion.OFFLINE_INTENTAR_ENVIAR
+        ) {
+
+
+            if (this.productosOffline.length > 0) {
+                // console.log("hay productos")
+                const coinciden: any[] = []
+
+                Product.enviando = true
+                this.productosOffline.forEach((prodOffline: any) => {
+                    if (
+                        prodOffline.idCategoria == catId
+                        && prodOffline.idFamilia == famId
+                        && prodOffline.idSubCategoria == subcatId
+                        && prodOffline.idSubFamilia == subFamId
+                    ) {
+                        // console.log("coinciden ", prodOffline.idProducto, "..con..", codigoBuscar)
+                        coinciden.push(prodOffline)
+                    }
+                })
+                setTimeout(() => {
+                    Product.enviando = false
+                    // console.log("listo")
+                }, 300);
+                // console.log("coinciden", coinciden)
+                callbackOk(coinciden)
+            } else {
+                // console.log("no hay productos")
+                callbackWrong("No hay productos descargados para trabajar offline")
+            }
+        } else {
+
+            EndPoint.sendGet(url, (responseData: any, response: any) => {
+                callbackOk(responseData.productos, response);
+            }, callbackWrong)
+        }
     }
 
-    async assignPrice(product, callbackOk, callbackWrong) {
+    async assignPrice(product: any, callbackOk: any, callbackWrong: any) {
         const configs = ModelConfig.get()
         var url = configs.urlBase
             + "/api/ProductosTmp/UpdateProductoPrecio"
 
         if (!product.codigoSucursal) product.codigoSucursal = ModelConfig.get("sucursal")
         if (!product.puntoVenta) product.puntoVenta = ModelConfig.get("puntoVenta")
+        if (!product.codbarra && product.idProducto) product.codbarra = product.idProducto
 
-        EndPoint.sendPut(url, product, (responseData, response) => {
+        EndPoint.sendPut(url, product, (responseData: any, response: any) => {
             callbackOk(responseData, response);
         }, callbackWrong)
 
     }
 
-    async newProductFromCode(product, callbackOk, callbackWrong) {
+    async newProductFromCode(product: any, callbackOk: any, callbackWrong: any) {
         var url = ModelConfig.get("urlBase")
             + "/api/ProductosTmp/AddProductoNoEncontrado"
 
@@ -559,7 +557,7 @@ class Product extends ModelSingleton {
                     precioVenta: product.precioVenta + ""
                 },
                 "post",
-                "nuevoProductoExpress"
+                ParaEnviar.TIPO.NUEVO_PRODUCTO_EXPRESS
             )
 
             setTimeout(() => {
@@ -574,13 +572,13 @@ class Product extends ModelSingleton {
             }
             callbackOk(response.data, response)
         } else {
-            EndPoint.sendPost(url, product, (responseData, response) => {
+            EndPoint.sendPost(url, product, (responseData: any, response: any) => {
                 callbackOk(responseData, response);
             }, callbackWrong)
         }
     }
 
-    async getTipos(callbackOk, callbackWrong) {
+    async getTipos(callbackOk: any, callbackWrong: any) {
         const configs = ModelConfig.get()
         var url = configs.urlBase
             + "/api/ProductosTmp/GetProductoTipos"
@@ -589,7 +587,7 @@ class Product extends ModelSingleton {
 
 
 
-        EndPoint.sendGet(url, (responseData, response) => {
+        EndPoint.sendGet(url, (responseData: any, response: any) => {
             callbackOk(responseData.productoTipos, response);
         }, callbackWrong)
     }
@@ -598,7 +596,7 @@ class Product extends ModelSingleton {
     async getCriticosPaginate({
         pageNumber = 1,
         rowPage = 10
-    }, callbackOk, callbackWrong) {
+    }, callbackOk: any, callbackWrong: any) {
         try {
             const configs = ModelConfig.get()
             var url = configs.urlBase + "/api/ProductosTmp/GetProductosStockCriticoPaginados"
@@ -619,9 +617,112 @@ class Product extends ModelSingleton {
             }
 
         } catch (error) {
-            console.error("Error fetching products:", error);
+            // console.error("Error fetching products:", error);
             callbackWrong(error)
         }
+    }
+
+    static nombreImagen(producto: any, enElServidor = true, evitarCache = true) {
+        // console.log("nombreImagen de ", producto)
+        var nombreImg = ""
+        //revisamos si es un producto, categoria, subcategoria, familia o subfamilia
+        // segun que propiedad tiene
+        if (producto.nombre) {
+            nombreImg = (producto.nombre + ".jpg").toLowerCase()
+        } else if (producto.descripcion) {
+            nombreImg = (producto.descripcion + ".jpg").toLowerCase()
+        }
+
+        if (enElServidor) {
+            nombreImg = ModelConfig.get("urlBase") + "/imagenes/" + nombreImg
+            nombreImg = nombreImg.replace("/api/", "/")
+        }
+
+        if (evitarCache) {
+            var dt = new Date()
+            nombreImg = nombreImg + "?v=" + dt.getTime()
+        }
+        return nombreImg
+    }
+
+    static async cargarImagen(product: any, callbackOk: any) {
+        var url = this.nombreImagen(product, true, true)
+
+        try {
+            const response = await axios.get(url);
+            // console.log("response de cargarImagen", response)
+            callbackOk(url)
+        } catch (err) {
+            callbackOk(BaseConfig.sinImagen)
+        } finally {
+        }
+        // EndPoint.sendGet(url, (responseData: any, response: any) => {
+        //     callbackOk(BaseConfig.productoSinImagen)
+        // }, (err: any) => {
+        //     callbackOk(BaseConfig.productoSinImagen)
+        // })
+    }
+
+    static async getIngredientesExternos(prod: any, callbackOk: any, callbackWrong: any) {
+        console.log("buscando extras para ", prod)
+        var comSes = new StorageSesion("comercio")
+        if (!comSes.hasOne()) {
+            console.log("no tiene configurado el comercio en el back")
+            callbackWrong("no tiene configurado el comercio en el back")
+            return false
+        }
+
+        const infoComercio = comSes.cargar(1)
+
+        Shop.getProperty("producto", prod.idProducto, "ingredientes", infoComercio, (resp: any) => {
+            // console.log("respuesta del servidor", resp)
+            if (resp.info != "") {
+                callbackOk(JSON.parse(resp.info))
+            } else if (resp.info == "[object Object]") {
+                callbackWrong("problemas de formato")
+            } else {
+                callbackWrong("sin datos")
+            }
+        }, (er: string) => {
+            callbackWrong(er)
+        })
+
+    }
+
+    static async getAgregadosExternos(prod: any, callbackOk: any, callbackWrong: any) {
+        console.log("buscando extras para ", prod)
+        var comSes = new StorageSesion("comercio")
+        if (!comSes.hasOne()) {
+            console.log("no tiene configurado el comercio en el back")
+            callbackWrong("no tiene configurado el comercio en el back")
+            return false
+        }
+
+        const infoComercio = comSes.cargar(1)
+
+        Shop.getProperty("producto",
+            prod.idCategoria + "-" +
+            prod.idSubCategoria + "-"
+            + prod.idFamilia + "-"
+            + prod.idSubFamilia,
+            "agregados",
+            infoComercio,
+            (resp: any) => {
+                // console.log("respuesta del servidor", resp)
+                if (resp.info != "") {
+                    callbackOk(JSON.parse(resp.info))
+                } else if (resp.info == "[object Object]") {
+                    callbackWrong("problemas de formato")
+                } else {
+                    callbackWrong("sin datos")
+                }
+            },
+            (er: string) => {
+                console.log("cae por error")
+                callbackWrong(er)
+            }
+        )
+
     }
 
 };

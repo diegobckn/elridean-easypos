@@ -1,5 +1,5 @@
 import StorageSesion from '../Helpers/StorageSesion.ts';
-import BaseConfig, { EmitirDetalle, ModosImpresion } from "../definitions/BaseConfig.ts";
+import BaseConfig from "../definitions/BaseConfig.ts";
 import MovimientoCaja from "../Types/MovimientoCaja.ts";
 import Model from './Model';
 import ModelConfig from './ModelConfig.ts';
@@ -10,6 +10,8 @@ import PagoBoleta from './PagoBoleta.ts';
 import PrinterServer from './PrinterServer.ts';
 
 import Logo from './../../logo-print.png'
+import EmitirDetalle from '../definitions/EmisionesDetalle.ts';
+import ModosImpresion from '../definitions/ModosImpresion.ts';
 
 
 class Printer {

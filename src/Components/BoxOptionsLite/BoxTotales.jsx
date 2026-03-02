@@ -51,6 +51,10 @@ import NumeroAtencion from "../ScreenDialog/NumeroAtencion";
 import User from "../../Models/User";
 import Suspender from "../../Models/Suspender";
 import Product from "../../Models/Product";
+import ReimprimirComprobante from "../ScreenDialog/ReimprimirComprobante";
+import SmallButton from "../Elements/SmallButton";
+import BalanzaDigi from "../../Models/BalanzaDigi";
+import LeerValeDigi300 from "../ScreenDialog/LeerValeDigi300";
 
 
 const BoxTotales = () => {
@@ -60,6 +64,7 @@ const BoxTotales = () => {
     sales,
     clearSessionData,
     grandTotal,
+    descuentos,
     getUserData,
     showMessage,
     showAlert,
@@ -79,7 +84,6 @@ const BoxTotales = () => {
   } = useContext(SelectedOptionsContext);
   const [vendedor, setVendedor] = useState(null);
   const [recargos, setRecargos] = useState(0);
-  const [descuentos, setDescuentos] = useState(0);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -99,20 +103,26 @@ const BoxTotales = () => {
   const [trabajaConNumeroAtencion, setTrabajaConNumeroAtencion] = useState(false)
 
   const [ingresarNumeroAtencion, setIngresarNumeroAtencion] = useState(false);
+  const [showReimpComprobante, setShowReimpComprobante] = useState(false);
+
+  const [verLecturaVale, setVerLecturaVale] = useState(false);
+  const [trabajarConBalanzaDigi, setTrabajarConBalanzaDigi] = useState(false);
 
   const focusSearchInput = () => {
-    System.intentarFoco(searchInputRef)
+    System.darFocoEnBuscar(searchInputRef)
   }
 
   const longBoleta = new LongClick(2);
   longBoleta.onClick(() => {
     if (salesData.length < 1) {
       showMessage("No hay ventas")
+      focusSearchInput()
       return
     }
 
     if (!System.configBoletaOk()) {
       showAlert("Se debe configurar emision de boleta")
+      focusSearchInput()
       return
     }
 
@@ -142,6 +152,7 @@ const BoxTotales = () => {
     setVerBotonPreventa(ModelConfig.get("verBotonPreventa"))
     setVerBotonEnvases(ModelConfig.get("verBotonEnvases"))
     setVerBotonPagarFactura(ModelConfig.get("verBotonPagarFactura"))
+    setTrabajarConBalanzaDigi(ModelConfig.get("trabajarConBalanzaDigi"))
   }, [])
 
 
@@ -200,9 +211,8 @@ const BoxTotales = () => {
       product.idProducto = parseInt(product.codProducto)
       Product.getInstance().findByCodigoBarras({
         codigoProducto: product.codProducto,
-        codigoCliente: 0
       }, (prodsEncontrados) => {
-        prodsEncontrados[0].quantity = product.cantidad
+        prodsEncontrados[0].cantidad = product.cantidad
         prodsEncontrados[0].cantidad = product.cantidad
         addToSalesData(prodsEncontrados[0])
 
@@ -313,7 +323,7 @@ const BoxTotales = () => {
                   justifyContent: "center",
                 }}
               >
-                TOTAL: ${System.formatMonedaLocal(grandTotal, false)}
+                TOTAL: ${System.formatMonedaLocal(grandTotal - descuentos, false)}
               </Typography>
 
               {ultimoVuelto !== null && (
@@ -334,21 +344,21 @@ const BoxTotales = () => {
               )}
             </Grid>
 
-            <UltimaVenta
-              openDialog={showScreenLastSale}
-              setOpenDialog={(val) => {
-                if (!val) {
-                  focusSearchInput()
-                }
-                setShowScreenLastSale(val)
-              }}
-            />
 
-            <Grid item xs={12} sm={12} md={12} lg={12} sx={{ marginTop: "6px" }}>
+            <Grid item xs={12} sm={12} md={6} lg={6} sx={{ marginTop: "0px" }}>
+              <UltimaVenta
+                openDialog={showScreenLastSale}
+                setOpenDialog={(val) => {
+                  if (!val) {
+                    focusSearchInput()
+                  }
+                  setShowScreenLastSale(val)
+                }}
+              />
               <Button
                 sx={{
-                  width: "50%",
-                  marginLeft: "25%",
+                  width: "90%",
+                  marginLeft: "5%",
                   height: "40px",
                   backgroundColor: "transparent",
                   color: "black",
@@ -363,7 +373,38 @@ const BoxTotales = () => {
                   setShowScreenLastSale(true)
                 }}
               >
-                <Typography variant="h7">&Uacute;ltima venta</Typography>
+                <Typography variant="h7">&Uacute;ltima <br /> venta</Typography>
+              </Button>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={6} sx={{ marginTop: "0px" }}>
+              <ReimprimirComprobante
+                openDialog={showReimpComprobante}
+                setOpenDialog={(val) => {
+                  if (!val) {
+                    focusSearchInput()
+                  }
+                  setShowReimpComprobante(val)
+                }}
+              />
+              <Button
+                sx={{
+                  width: "90%",
+                  marginLeft: "5%",
+                  height: "40px",
+                  backgroundColor: "transparent",
+                  color: "black",
+                  borderRadius: "0",
+                  "&:hover": {
+                    border: "1px solid black",
+                    color: "black",
+                    backgroundColor: "#D6D5D1 ",
+                  },
+                }}
+                onClick={() => {
+                  setShowReimpComprobante(true)
+                }}
+              >
+                <Typography variant="h7">Reimprimir <br /> comprobante</Typography>
               </Button>
             </Grid>
             <Grid item xs={12} sm={12} md={12} lg={12} sx={{ marginTop: "6px" }}>
@@ -374,7 +415,7 @@ const BoxTotales = () => {
                   justifyContent: "center",
                 }}
               >
-                DESCUENTOS: ${descuentos}
+                DESCUENTOS: $ {System.formatMonedaLocal(Math.abs(descuentos), false)}
               </Typography>
             </Grid>
 
@@ -474,6 +515,7 @@ const BoxTotales = () => {
                     onClick={() => {
                       if (salesData.length < 1) {
                         showMessage("No hay ventas")
+                        focusSearchInput()
                         return
                       }
                       setShowScreenPagoFactura(true)
@@ -531,7 +573,6 @@ const BoxTotales = () => {
                 </Grid>
               </>
             )}
-
 
             {verBotonEnvases && (
               <>
@@ -678,6 +719,20 @@ const BoxTotales = () => {
 
 
               </>
+            )}
+
+
+            {trabajarConBalanzaDigi && (
+              <Grid item xs={12} sm={12} md={12} lg={12}>
+                <LeerValeDigi300 openDialog={verLecturaVale} setOpenDialog={setVerLecturaVale} />
+                <SmallButton
+                  style={{
+                    width: "97%"
+                  }}
+                  textButton={"leer digi"} actionButton={() => {
+                    setVerLecturaVale(true)
+                  }} />
+              </Grid>
             )}
 
           </Grid>

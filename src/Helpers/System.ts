@@ -7,6 +7,13 @@ import * as CryptoJS from 'crypto-js'
 class System {
     static instance: System | null = null;
 
+    getAppVersion() {
+        return CONSTANTS.appVersion
+    }
+
+    getAppNameOnly() {
+        return CONSTANTS.appName
+    }
     getAppName() {
         return CONSTANTS.appName + " " + CONSTANTS.appVersion
     }
@@ -82,15 +89,15 @@ class System {
     }
 
     //fechaactual con formato: 2024-05-12T02:06:22.000Z
-    getDateForServer(date) {
+    getDateForServer(date: null | undefined | string) {
         return (dayjs(date).format('YYYY-MM-DD HH:mm:ss') + ".000Z").replace(" ", "T")
     }
 
-    en2Decimales(valor) {
+    en2Decimales(valor: any) {
         return Math.round(parseFloat(valor) * 100) / 100
     }
 
-    typeIntFloat(value) {
+    typeIntFloat(value: any) {
         if ((value + "").indexOf(".") > -1) {
             return parseFloat(value + "")
         } else {
@@ -98,7 +105,7 @@ class System {
         }
     }
 
-    static clone(obj) {
+    static clone(obj: any) {
         return JSON.parse(JSON.stringify(obj))
     }
 
@@ -108,7 +115,7 @@ class System {
             return {}
         }
         var [location, allLast] = allStr.split("?")
-        var vars = {}
+        var vars: any = {}
         allLast.split("&").forEach((nameValue) => {
             const [name, value] = nameValue.split("=")
             vars[name] = value
@@ -116,28 +123,28 @@ class System {
         return vars
     }
 
-    static addInObj(setFunction, fieldName, fieldValue) {
-        setFunction((oldProduct) => {
+    static addInObj(setFunction: any, fieldName: any, fieldValue: any) {
+        setFunction((oldProduct: any) => {
             const newProduct = { ...oldProduct };
             newProduct[fieldName] = fieldValue
             return newProduct;
         });
     }
 
-    static addAllInObj(setFunction, objValues) {
-        setFunction((oldProduct) => {
+    static addAllInObj(setFunction: any, objValues: any) {
+        setFunction((oldProduct: any) => {
             const newProduct = { ...oldProduct, ...objValues };
             return newProduct;
         });
     }
 
-    static addAllInArr(setFunction, arrayOriginal, index, objValues) {
+    static addAllInArr(setFunction: any, arrayOriginal: any, index: any, objValues: any) {
         const newArr = [...arrayOriginal]
         newArr[index] = objValues
         setFunction(newArr)
     }
 
-    static allValidationOk = (validators, showMessageFunction) => {
+    static allValidationOk = (validators: any, showMessageFunction: any) => {
         // console.log("allValidationOk:", validators)
         var allOk = true
         // const keys = Object.keys(validators)
@@ -151,8 +158,15 @@ class System {
         return allOk
     }
 
-    static intentarFoco(textInfoRef) {
-        // console.log("..intentarFoco",textInfoRef)
+    static darFocoEnBuscar(textInfoRef: any) {
+        // console.log("darFocoEnBuscar")
+        const debe = ModelConfig.get("darFocoEnBuscar")
+        if (debe) {
+            this.intentarFoco(textInfoRef)
+        }
+    }
+    static intentarFoco(textInfoRef: any) {
+        // console.log("..intentarFoco", textInfoRef)
         // console.log(textInfoRef)
         if (!textInfoRef || textInfoRef.current == null) {
             // console.log("no tiene valor ref")
@@ -160,26 +174,41 @@ class System {
                 this.intentarFoco(textInfoRef)
             }, 300);
         } else {
-            //   console.log("ya tiene no es null")
+            // console.log("ya tiene no es null")
             const contInput = textInfoRef.current
-            // console.log("input encontrado:")
+            // console.log("input encontrado:", contInput)
             // console.log(contInput.querySelector("input"))
-            const inp = contInput.querySelector("input")
-            if (inp) {
-                contInput.querySelector("input").focus()
-            } else {
+            var inp = null
+            if (contInput.localName && contInput.localName == "input") {
+                // console.log("if 1")
+                // console.log("resp blur", contInput.blur())
                 setTimeout(() => {
-                    if (textInfoRef.current) textInfoRef.current.focus()
+                    contInput.focus()
                 }, 300);
+                inp = contInput
+            } else {
+                // console.log("else 2")
+                // console.log("contInput", contInput)
+                // console.log("contInput.localName", contInput.localName)
+                inp = contInput.querySelector("input")
+                // console.log("inp", inp)
+                // console.log("inp.localName", inp.localName)
+                if (inp) {
+                    inp.focus()
+                } else {
+                    setTimeout(() => {
+                        this.intentarFoco(textInfoRef)
+                    }, 300);
+                }
             }
         }
     }
 
-    static directFocus(inpRef) {
+    static directFocus(inpRef: any) {
         inpRef.current.focus()
     }
 
-    static agoDatetime(dateServer) {
+    static agoDatetime(dateServer: any) {
         var agos = ""
 
         const v1 = dateServer.split("T")
@@ -213,7 +242,7 @@ class System {
         return agos
     }
 
-    static formatDateServer(dateServer, withAgo = false) {
+    static formatDateServer(dateServer: any, withAgo = false) {
         const v1 = dateServer.split("T")
         const dt = v1[0]
         const hrs = v1[1]
@@ -231,7 +260,7 @@ class System {
         return day + "/" + month + "/" + year + " " + hr + ":" + mn + agos
     }
 
-    static maxStr(str, max, completarConPuntos = true) {
+    static maxStr(str: string, max: number, completarConPuntos = true) {
         var txt = str
         console.log("original largo", txt.length)
 
@@ -248,28 +277,33 @@ class System {
         return txt
     }
 
-    static camelToUnderscore(key) {
+    static camelToUnderscore(key: string) {
         return key.replace(/([A-Z])/g, "_$1").toLowerCase();
     }
 
-    static partirCada(elString, cantidadACortar) {
-        const stringToRegex = str => {
+    static partirCada(elString: string, cantidadACortar: number) {
+        const stringToRegex = (str: string) => {
             // Main regex
-            const main = str.match(/\/(.+)\/.*/)[1]
+            const mainArr = str.match(/\/(.+)\/.*/)
+            const main = (mainArr && mainArr.length > 0) ? mainArr[1] : ""
 
             // Regex options
-            const options = str.match(/\/.+\/(.*)/)[1]
+            const optionsArr = str.match(/\/.+\/(.*)/)
+            const options = (optionsArr && optionsArr.length > 0) ? optionsArr[1] : ""
 
             // Compiled regex
             return new RegExp(main, options)
         }
 
-        return elString.match(stringToRegex("/.{1," + cantidadACortar + "}/g"))
+        var rs: any = elString.match(stringToRegex("/.{1," + cantidadACortar + "}/g"))
+        if (!rs) rs = []
+
+        return rs
     }
 
-    static pagaConEfectivo = (pagos) => {
+    static pagaConEfectivo = (pagos: any) => {
         var conEfectivo = false
-        pagos.forEach((pago) => {
+        pagos.forEach((pago: any) => {
             if (pago.metodoPago == "EFECTIVO") {
                 conEfectivo = true
             }
@@ -277,7 +311,7 @@ class System {
         return conEfectivo
     }
 
-    static showIfHasDecimal(valorMoneda, cantidadDecimales = 2) {
+    static showIfHasDecimal(valorMoneda: any, cantidadDecimales = 2) {
         if (isNaN(valorMoneda)) return "0"
         var monedaStr = valorMoneda + ""
         if (monedaStr.indexOf(".") > -1) {
@@ -302,7 +336,7 @@ class System {
 
 
     // ej 152000.157 ----> 152.000,15
-    static formatMonedaLocal(valorMoneda, conDecimales = true) {
+    static formatMonedaLocal(valorMoneda: any, conDecimales = true) {
         if (isNaN(valorMoneda)) return "0,00"
         // console.log("formatMonedaLocal", valorMoneda)
         var monedaStr = valorMoneda + ""
@@ -351,12 +385,12 @@ class System {
         }
     }
 
-    static truncarMoneda(monto) {
+    static truncarMoneda(monto: any) {
         var montoArr = (monto + "").split(".")
         return parseInt(montoArr[0])
     }
 
-    static formatoYTruncarMoneda(monto) {
+    static formatoYTruncarMoneda(monto: any) {
         return this.formatMonedaLocal(this.truncarMoneda(monto), false)
     }
 
@@ -367,8 +401,8 @@ class System {
         return (emitirBoleta !== null && tienePasarelaPago !== null)
     }
 
-    static invertirProps(objeto) {
-        const objetoInvertido = {}
+    static invertirProps(objeto: any) {
+        const objetoInvertido: any = {}
 
         const keys = Object.keys(objeto)
 
@@ -380,10 +414,10 @@ class System {
         return objetoInvertido
     }
 
-    static arrayFromObject(objeto, invert = false) {
+    static arrayFromObject(objeto: any, invert = false) {
         if (invert) objeto = this.invertirProps(objeto)
         const keys = Object.keys(objeto)
-        var ar = []
+        var ar: any = []
 
         keys.forEach((key) => {
             if (objeto[key]) {
@@ -394,7 +428,7 @@ class System {
         return ar
     }
 
-    static arrayIdValueFromObject(objeto, invert, idFieldName = "id", valueFieldName = "value") {
+    static arrayIdValueFromObject(objeto: any, invert: any, idFieldName = "id", valueFieldName = "value") {
         // console.log("arrayIdValueFromObject", objeto)
         if (invert) objeto = this.invertirProps(objeto)
         const keys = Object.keys(objeto)
@@ -406,7 +440,7 @@ class System {
             if (typeof (value) == "string") {
                 value = value.replaceAll("_", " ")
             }
-            const nob = {}
+            const nob: any = {}
             nob[idFieldName] = key
             nob[valueFieldName] = value
             ar.push(nob)
@@ -416,7 +450,7 @@ class System {
         return ar
     }
 
-    static objectPropValueFromIdValueArray(array, idFieldName = "id", valueFieldName = "value") {
+    static objectPropValueFromIdValueArray(array: any, idFieldName = "id", valueFieldName = "value") {
         var obj: any = {}
 
         for (let index = 0; index < array.length; index++) {
@@ -430,11 +464,11 @@ class System {
     }
 
 
-    static invertirStr(elStr) {
+    static invertirStr(elStr: any) {
         return elStr.split("").reverse().join("");
     }
 
-    static isInt(n) {
+    static isInt(n: any) {
         if (typeof (n) == "string") n = parseFloat(n)
         return parseInt(n) === n
     }
@@ -452,7 +486,7 @@ class System {
 
 
     static sustraerVariablesDePlantilla(
-        plantillaContenido,
+        plantillaContenido: any,
         mascaraInicio = "{{",
         mascaraFin = "}}",
         defaultValues = null
@@ -461,7 +495,7 @@ class System {
         var ini = false
         var fin = false
         var dsd = 0, hst = 0
-        var variables = {}
+        var variables: any = {}
 
         console.log("defaultValues", defaultValues)
 
@@ -494,7 +528,7 @@ class System {
 
 
     // reemplazos inteligentes para probar plantillas de impresion
-    static valorReemplazoPlantilla(datoPrueba, plantillaNombre = "") {
+    static valorReemplazoPlantilla(datoPrueba: any, plantillaNombre = "") {
         var tipoContenido = plantillaNombre + ""
         tipoContenido = tipoContenido.replace("Imprimir", "")
         tipoContenido = tipoContenido.replace("58mm", "")
@@ -581,11 +615,19 @@ class System {
         return `<img width="50px" height="50px" src="./src/assets/qr.jpeg" />`
     }
 
-    static ucfirst(txt) {
+    static ucfirst(txt: string) {
         if (!txt) {
             return '';
         }
         return txt.charAt(0).toUpperCase() + txt.slice(1);
+    }
+
+    static getProp(object: any, propName: string) {
+        return object[propName]
+    }
+
+    static setProp(object: any, propName: string, propValue: any) {
+        object[propName] = propValue
     }
 
 }

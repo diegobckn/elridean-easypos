@@ -24,7 +24,9 @@ const SelectSucursal = ({
   fieldName = "select",
   label = fieldName[0].toUpperCase() + fieldName.substr(1),
   required = false,
-  vars = null
+  vars = null,
+  setSucursales = (sucs) => { },
+  setSucursalSelected = (suc) => { }
 }) => {
 
   const {
@@ -83,6 +85,7 @@ const SelectSucursal = ({
 
     Sucursal.getAll((responseData, response) => {
       setSelectList(responseData);
+      setSucursales(responseData);
     }, (error) => {
       showMessage(error)
     })
@@ -99,9 +102,21 @@ const SelectSucursal = ({
     })
   }
 
+  const buscarInfoById = (sucursalId) => {
+    var found = null;
+    selectList.forEach((sucItem) => {
+      if (sucItem.idSucursal == sucursalId) {
+        found = sucItem
+      }
+    })
+
+    return found
+  }
+
   useEffect(() => {
     validate()
     setSelected(-1)
+    setSucursalSelected(null)
     loadList()
   }, [])
 
@@ -122,6 +137,13 @@ const SelectSucursal = ({
       validate()
     }
     // console.log("selected es:", selected)
+
+    if (selected == -1) {
+      setSucursalSelected(null)
+    } else {
+      setSucursalSelected(buscarInfoById(selected))
+    }
+
   }, [selected, selectList.length])
 
 
@@ -135,7 +157,8 @@ const SelectSucursal = ({
       )}
 
 
-      <Select
+      <TextField
+        select
         sx={{
           marginTop: "17px"
         }}
@@ -161,7 +184,7 @@ const SelectSucursal = ({
             {selectOption.descripcionSucursal}
           </MenuItem>
         ))}
-      </Select>
+      </TextField>
     </>
   );
 };

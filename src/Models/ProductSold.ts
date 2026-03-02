@@ -4,13 +4,13 @@ import Product from './Product.ts';
 import BaseConfig from "../definitions/BaseConfig.ts";
 import System from '../Helpers/System.ts';
 import IProductSold from '../Types/IProductSold.ts';
+import Client from './Client.ts';
 
 
 class ProductSold extends Product implements IProductSold {
     esAgregado: boolean | undefined;
-    quantity: number;
-    cantidad: number;
-    total: number;
+    cantidad: number = 0;
+    total: number = 0;
 
     pesable: undefined | boolean;
     tipoVenta: undefined | number;
@@ -22,70 +22,111 @@ class ProductSold extends Product implements IProductSold {
     ocultarEnListado: boolean | undefined;
     extras: any | undefined;
     precioVenta: number | undefined
+    precioVentaOriginal: number | undefined
+    mostrarPrecioRangos: any | undefined
+    precioVentaCliente: number | undefined
 
 
     static instance: ProductSold | null = null;
-    static getInstance():ProductSold{
-        if(ProductSold.instance == null){
+    static getInstance(): ProductSold {
+        if (ProductSold.instance == null) {
             ProductSold.instance = new ProductSold();
         }
 
         return ProductSold.instance;
     }
 
-    esPesable(product:any | null = null){
-        if(!product) product = this
-        if(product.pesable != undefined)
+    static esPesable(product: any) {
+        if (!product) product = this
+        if (product.pesable != undefined)
             return product.pesable
 
-        if(product.tipoVenta != undefined)
+        if (product.tipoVenta != undefined)
             return product.tipoVenta == 2
 
-        if(product.cantidad != undefined)
+        if (product.cantidad != undefined)
             return parseInt(product.cantidad) != parseFloat(product.cantidad)
-        
+
         return false
     }
 
-    getSubTotal(){
-        return Math.round(this.quantity * (this.price ? this.price : 0)) ;
+    getPrecioCantidad(otraCantidad: number | null | undefined = null) {
+        if (this.precioVentaCliente) {
+            return this.precioVentaCliente
+        }
+
+        const cl = Client.getInstance()
+        if (cl.sesion.hasOne()) {
+            return this.precioVenta
+        }
+
+        if (
+            this.mostrarPrecioRangos
+            && this.mostrarPrecioRangos.length > 0
+            && this.mostrarPrecioRangos[0].cantidadDesde > 0
+        ) {
+            // console.log("tengo rango de precios")
+
+            const miCantidad = otraCantidad ? otraCantidad : this.cantidad
+
+            var miRangoIndex = -1
+            var ultimoRangoIndex = -1
+            this.mostrarPrecioRangos.forEach((rango: any, ix: number) => {
+                if (miCantidad >= rango.cantidadDesde && miCantidad <= rango.cantidadHasta) {
+                    miRangoIndex = ix
+                }
+                ultimoRangoIndex = ix
+            })
+            if (miRangoIndex == -1) miRangoIndex = ultimoRangoIndex
+            const miRango = this.mostrarPrecioRangos[miRangoIndex]
+            if (this.precioVenta != miRango.precioVenta) {
+                this.precioVenta = miRango.precioVenta
+            }
+        }
+        return this.precioVenta
+    }
+
+    getSubTotal() {
+        // console.log("getSubTotal de ", this)
+        this.getPrecioCantidad()
+        return Math.round(this.cantidad * (this.precioVenta ? this.precioVenta : 0));
     }
 
     //price = 0 -> original price
-    addQuantity(quantity = 1, price = 0){
-        this.quantity = System.getInstance().typeIntFloat(this.quantity)
-        quantity = System.getInstance().typeIntFloat(quantity)
+    addQuantity(cantidad = 1, price = 0) {
+        this.cantidad = System.getInstance().typeIntFloat(this.cantidad)
+        cantidad = System.getInstance().typeIntFloat(cantidad)
 
-        this.quantity += quantity;
-        this.cantidad = this.quantity
-        if(price != 0) this.price = price;
+        this.cantidad += cantidad;
+        this.cantidad = this.cantidad
+        if (price != 0) this.precioVenta = price;
         this.total = this.getSubTotal();
         return this;
     }
 
-    changeQuantity(quantity){
-        this.quantity = quantity;
+    changeQuantity(cantidad: number) {
+        this.cantidad = cantidad;
         this.updateSubtotal();
     }
 
-    updateSubtotal(){
+    updateSubtotal() {
         return this.total = this.getSubTotal()
     }
 
-    static tieneEnvases(producto){
+    static tieneEnvases(producto: any) {
         // console.log("tiene envases?")
         // console.log(producto)
-        return(
+        return (
             (
-            //caso cuando viene del back
-            Array.isArray(producto.envase) 
-            && producto.envase.length>0 
-            && producto.envase[0].costo>0
-            && producto.envase[0].descripcion!=""
+                //caso cuando viene del back
+                Array.isArray(producto.envase)
+                && producto.envase.length > 0
+                && producto.envase[0].costo > 0
+                && producto.envase[0].descripcion != ""
             )
 
             ||
-            
+
             //caso cuando ya esta en el listado
             (
                 producto.hasEnvase
@@ -96,24 +137,24 @@ class ProductSold extends Product implements IProductSold {
         )
     }
 
-    static getOwnerByEnvase(envase, otherProducts){
-        var owner:any = null
-        otherProducts.forEach((pro)=>{
-            if(pro.idProducto == envase.ownerEnvaseId){
+    static getOwnerByEnvase(envase: any, otherProducts: any) {
+        var owner: any = null
+        otherProducts.forEach((pro: any) => {
+            if (pro.idProducto == envase.ownerEnvaseId) {
                 owner = pro
             }
         })
         return owner
     }
 
-    static esEnvase(productData){
-        return (productData.ownerEnvaseId!= undefined || productData.isEnvase)
+    static esEnvase(productData: any) {
+        return (productData.ownerEnvaseId != undefined || productData.isEnvase)
     }
 
-    static getEnvaseByOwner(owner, otherProducts){
-        var envase:any = null
-        otherProducts.forEach((pro)=>{
-            if(owner.idProducto == pro.ownerEnvaseId){
+    static getEnvaseByOwner(owner: any, otherProducts: any) {
+        var envase: any = null
+        otherProducts.forEach((pro: any) => {
+            if (owner.idProducto == pro.ownerEnvaseId) {
                 envase = pro
             }
         })
@@ -121,34 +162,57 @@ class ProductSold extends Product implements IProductSold {
     }
 
 
-    tieneExtraAgregar(){
+    tieneExtraAgregar() {
         return this.extras && this.extras.agregar && this.extras.agregar.length > 0
     }
 
-    getAgregadosEnTexto(){
+    getAgregadosEnTexto() {
         var txt = ""
-        if(!this.tieneExtraAgregar())return txt
-        this.extras.agregar.forEach(agregado => {
-            if(txt != "") txt += ", "
+        if (!this.tieneExtraAgregar()) return txt
+        this.extras.agregar.forEach((agregado: any) => {
+            if (txt != "") txt += ", "
             txt += agregado.nombre
         });
         return txt
     }
 
-    tieneExtraQuitar(){
+    tieneExtraQuitar() {
         return this.extras && this.extras.quitar && this.extras.quitar.length > 0
     }
 
-    getQuitadosEnTexto(){
+    getQuitadosEnTexto() {
         var txt = ""
-        if(!this.tieneExtraQuitar())return txt
-        this.extras.quitar.forEach(agregado => {
-            if(txt != "") txt += ", "
+        if (!this.tieneExtraQuitar()) return txt
+        this.extras.quitar.forEach((agregado: any) => {
+            if (txt != "") txt += ", "
             txt += agregado.nombre
         });
         return txt
     }
-    
+
+    montoExtrasUnitario() {
+        var totalEx = 0
+        if (!this.tieneExtraAgregar()) return 0
+        this.extras.agregar.forEach((agregado: any) => {
+            totalEx += agregado.precioVenta
+        });
+        return totalEx
+    }
+
+    montoExtrasSubtotal() {
+        var totalEx = 0
+        if (!this.tieneExtraAgregar()) return 0
+        this.extras.agregar.forEach((agregado: any) => {
+            totalEx += (this.cantidad * agregado.precioVenta)
+        });
+        return totalEx
+    }
+
+    static createByValues(product: any) {
+        const me = new ProductSold()
+        me.fill(product)
+        return me;
+    }
 
 };
 

@@ -13,8 +13,8 @@ class SoporteTicket extends Singleton {
 
   static reportarError = true
 
-  static catchRequest(requestData) {
-    if (SoporteTicket.reportarError) console.log("capturando request desde SoporteTicket", requestData)
+  static catchRequest(requestData: any) {
+    // if (SoporteTicket.reportarError) console.log("capturando request desde SoporteTicket", requestData)
 
     var data: any = {
       urlCliente: window.location.href,
@@ -43,15 +43,17 @@ class SoporteTicket extends Singleton {
       data.datosRespuestaEndpoint.data = requestData.response.data
       data.datosRespuestaEndpoint.statusText = requestData.response.statusText
     }
-    if (SoporteTicket.reportarError) console.log("informacion del soporte", data)
+    // if (SoporteTicket.reportarError) console.log("informacion del soporte", data)
 
     this.enviarError(data, () => { }, () => { })
   }
 
   static catchRequestError(error: any) {
-    if (SoporteTicket.reportarError) console.log("capturando error desde SoporteTicket catch", error)
-    console.log("Error", error)
+    // console.log("catchRequestError..error", error)
+    // if (SoporteTicket.reportarError) console.log("capturando error desde SoporteTicket catch", error)
+    // console.log("Error", error)
     if (!error.config) {
+      // console.log("salgo porque no tiene config")
       return
     }
     var data: any = {
@@ -85,12 +87,12 @@ class SoporteTicket extends Singleton {
       data.datosRespuestaEndpoint.data = error.response.data
       data.datosRespuestaEndpoint.statusText = error.response.statusText
     }
-    if (SoporteTicket.reportarError) console.log("informacion del soporte", data)
+    // if (SoporteTicket.reportarError) console.log("informacion del soporte", data)
 
     this.enviarError(data, () => { }, () => { })
   }
 
-  static async enviarError(data, callbackOk, callbackWrong) {
+  static async enviarError(data: any, callbackOk: any, callbackWrong: any) {
     if (!SoporteTicket.reportarError) return
     if (data.configDispositivoCliente.afterLogin && typeof data.configDispositivoCliente.afterLogin === "number") {
       const types = Object.keys(TiposPasarela)
@@ -101,8 +103,8 @@ class SoporteTicket extends Singleton {
         data.configDispositivoCliente.afterLogin = types[find]
       }
     }
+    var url = "https://softus.com.ar/send-public-ticket-email/2jdsu3471823jasdjm12l3k1012mascd"
     try {
-      var url = "https://softus.com.ar/send-public-ticket-email/2jdsu3471823jasdjm12l3k1012mascd"
 
       const response = await axios.post(url, data);
       if (
@@ -116,6 +118,29 @@ class SoporteTicket extends Singleton {
       }
     } catch (error) {
       callbackWrong(error)
+
+      // this.enviarIncidencia({
+      //   "project": "pos lite",
+      //   "url_api": data.endpointUrl,
+      //   "level": 5,
+      //   "name": "falla endpoint",
+      //   "details": data,
+      // })
+    }
+  }
+
+  //nuevo sistema incidencias
+  static async enviarIncidencia(dataIncidence: any) {
+    try {
+      var url = "https://softus.com.ar/easypos/incidents-add"
+
+      const response = await axios.post(url, dataIncidence);
+      if (
+        response.data.status
+      ) {
+        // console.log("incidencia enviada ok")
+      }
+    } catch (error) {
     }
   }
 };

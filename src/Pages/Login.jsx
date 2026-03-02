@@ -37,7 +37,6 @@ import TiposPasarela from "../definitions/TiposPasarela";
 import Logo from '../assets/logo-principal.jpg'
 import Comercio from "../Models/Comercio";
 import PrinterPaper from "../Models/PrinterPaper";
-import { ModosTrabajoConexion } from "../definitions/BaseConfig";
 import UsersOffline from "../Models/UsersOffline";
 import OfflineAutoIncrement from "../Models/OfflineAutoIncrement";
 import Shop from "../Models/Shop";
@@ -45,6 +44,9 @@ import StorageSesion from "../Helpers/StorageSesion";
 import Atudepa from "../Models/Atudepa";
 import LoopProperties from "../Helpers/LoopProperties";
 import EstadosPedidosApp from "../definitions/EstadosPedidosApp";
+import ModosTrabajoConexion from "../definitions/ModosConexion";
+import ReconectarBalanza from "../Components/ScreenDialog/ReconectarBalanza";
+import Balanza from "../Models/Balanza";
 
 const Login = () => {
   const {
@@ -93,6 +95,9 @@ const Login = () => {
 
   const [reintentarPorSesionActiva, setReintentarPorSesionActiva] = useState(false);
 
+  const [verPantallaReconectar, setverPantallaReconectar] = useState(false)
+
+
   const setFocus = (inputToFocus) => {
     if (inputToFocus == "rutOrCode") {
       setShowTecladoUsuario(true)
@@ -116,8 +121,24 @@ const Login = () => {
 
     Licencia.check(showAlert, () => { navigate("/sin-licencia"); })
 
+    if (ModelConfig.get("detectarPeso")) {
+      revisarBalanza()
+    }
+
   }, [])
 
+  const revisarBalanza = () => {
+    console.log("revisarBalanza")
+    Balanza.detectandoConexion = true
+    Balanza.onNeedReconect = () => {
+      console.log("se necesita reconectar...")
+      setverPantallaReconectar(true)
+    }
+
+    Balanza.getInstance().deteccionPeso(() => {
+      console.log("balanza ok")
+    })
+  }
 
   const [footerTextSupport, setFooterTextSupport] = useState("Version 1.0.0");
   const navigate = useNavigate();
@@ -175,6 +196,10 @@ const Login = () => {
 
 
   const loadComercioApp = () => {
+    if (!ModelConfig.get("trabajarConApp")) {
+      return
+    }
+
     getInfoComercio((infoCom) => {
       console.log("info de comercio", infoCom)
       infoCom.url_base = ModelConfig.get("urlBase")
@@ -182,7 +207,7 @@ const Login = () => {
       Shop.prepare(infoCom, (response) => {
         hideLoading()
         // console.log("respuesta de softus", response)
-        console.log("respuesta de softus..guarda en sesion", System.clone(response.info))
+        // console.log("respuesta de softus..guarda en sesion", System.clone(response.info))
         var appSes = new StorageSesion("app_shop")
         appSes.guardar(System.clone(response.info))
       }, showMessageLoading)
@@ -300,13 +325,11 @@ const Login = () => {
         return
       }
 
-
       // Actualizar userData después del inicio de sesión exitoso
       updateUserData(info.responseUsuario);
 
-
-
-      OfflineAutoIncrement.saveIfNotHasInSesion(info.responseUsuario)
+      OfflineAutoIncrement.saveInSesion(info.responseUsuario)
+      // OfflineAutoIncrement.saveIfNotHasInSesion(info.responseUsuario)
       UsersOffline.add({ ...info.responseUsuario, clave: password })
 
       // Redirigir a la página de inicio
@@ -363,6 +386,12 @@ const Login = () => {
               Atudepa.checkNuevosPedidos = true
               Atudepa.iniciarCiclo()
             }, () => {
+
+              if (!ModelConfig.get("trabajarConApp")) {
+                return
+              }
+
+
               showConfirm("Abrir Turno de la app?", () => {
                 // console.log("abiendo turno")
 
@@ -627,6 +656,10 @@ const Login = () => {
 
 
 
+        <ReconectarBalanza
+          openDialog={verPantallaReconectar}
+          setOpenDialog={setverPantallaReconectar}
+        />
 
 
 

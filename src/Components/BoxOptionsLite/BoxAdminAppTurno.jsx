@@ -14,34 +14,10 @@ import {
   Checkbox,
 } from "@mui/material";
 import { SelectedOptionsContext } from "../Context/SelectedOptionsProvider";
-import MainButton from "../Elements/MainButton";
-import ScreenDialogCreateClient from "../ScreenDialog/CreateClient";
-import ScreenDialogShowFamilies from "../ScreenDialog/ShowFamilies";
-import ScreenDialogConfig from "../ScreenDialog/AdminConfig";
-import BusquedaRapida from "../ScreenDialog/BusquedaRapida";
-import ScreenSuspend from "../ScreenDialog/SuspenderVenta";
-import ScreenRecuperarVenta from "../ScreenDialog/RecuperarVenta";
-import ScreenIngreso from "../ScreenDialog/Ingreso";
-import ScreenRetiro from "../ScreenDialog/Retiro";
-import ScreenDevolucion from "../ScreenDialog/Devolucion";
-import ScreenProductoAbierto from "../ScreenDialog/ProductoAbierto";
-import CierreCaja from "../ScreenDialog/CierreCaja";
-import MessageDialog from "../Dialogs/Alert";
-import UserEvent from "../../Models/UserEvent";
-import BoxProductoFamilia from "./BoxProductoFamilia";
-import BoxBusquedaRapida from "./BoxBusquedaRapida";
-import ModelConfig from "../../Models/ModelConfig";
 import SmallButton from "../Elements/SmallButton";
-import GrillaProductosVendidos from "./GrillaProductosVendidos";
-import ItemVentaOffline from "./ItemVentaOffline";
-import SalesOffline from "../../Models/SalesOffline";
-import SmallDangerButton from "../Elements/SmallDangerButton";
-import SmallSecondaryButton from "../Elements/SmallSecondaryButton";
-import CorregirFolios from "../ScreenDialog/CorregirFolios";
 import Atudepa from "../../Models/Atudepa";
 import TouchInputName from "../TouchElements/TouchInputName";
 import dayjs from "dayjs";
-import SmallGrayButton from "../Elements/SmallGrayButton";
 import SmallWarningButton from "../Elements/SmallWarningButton";
 import SmallPrimaryButton from "../Elements/SmallPrimaryButton";
 
@@ -129,13 +105,13 @@ const BoxAdminAppTurno = ({
 
   useEffect(() => {
 
-    const fechaHoy = dayjs().format('DD/MM/YYYY')
-    const hr = dayjs().format('HH:mm')
+    const fechaHoy = dayjs()
+    const hr = dayjs()
 
-    setAbrirAFecha(fechaHoy)
-    setCerrarAFecha(fechaHoy)
+    setAbrirAFecha(fechaHoy.format('DD/MM/YYYY'))
+    setCerrarAFecha(fechaHoy.add(3, 'hour').format('DD/MM/YYYY'))
 
-    setAbrirAHora(hr)
+    setAbrirAHora(hr.format('HH:mm'))
     setCerrarAHora(dayjs().add(3, 'hour').format('HH:mm'))
 
     showLoading("Revisando turno...")

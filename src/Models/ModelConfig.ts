@@ -1,11 +1,15 @@
 import axios from 'axios';
 import StorageSesion from '../Helpers/StorageSesion.ts';
 import BaseConfig from "../definitions/BaseConfig";
+import System from '../Helpers/System.ts';
 
 
 class ModelConfig {
     static instance: ModelConfig | null = null;
     sesion: StorageSesion;
+
+    static anyChange = false
+    static lastReaded: any = null
 
     constructor() {
         this.sesion = new StorageSesion("config");
@@ -19,45 +23,52 @@ class ModelConfig {
         return ModelConfig.instance;
     }
 
-    static get(propName = "") {
+    static getAllMixed() {
+        // console.log("getAllMixed")
+        var all: any = {}
         try {
-            var rs:any = ModelConfig.getInstance().sesion.cargar(1)
-        } catch (err) {
+            all = ModelConfig.getInstance().sesion.cargar(1)
+        } catch (err) { }
 
-        }
-
-        if (!rs) {
-            this.getInstance().sesion.guardar(BaseConfig);
-        }
-        rs = ModelConfig.getInstance().sesion.cargar(1)
-
-        if (propName != "") {
-            if (rs[propName] != undefined) {
-                return rs[propName]
-            } else {
-                console.log("no esta creada")
-                rs[propName] = BaseConfig[propName]
-                this.getInstance().sesion.guardar(rs);
-                return rs[propName]
-            }
-        }
-
-        // console.log("get..")
-        // console.log(rs)
-        return rs;
+        all = Object.assign(BaseConfig, all)
+        // console.log("devuelve mixed", System.clone(all))
+        return all
     }
 
-    static change(propName, propValue) {
+    static get(propName = "") {
+        if (!this.lastReaded || this.anyChange) {
+            this.lastReaded = this.getAllMixed()
+        }
+
+        this.anyChange = false
+
+        if (propName != "") {
+            return this.lastReaded[propName]
+        } else {
+            return this.lastReaded
+        }
+    }
+
+    static change(propName: string, propValue: any) {
+        this.anyChange = true
         var all = ModelConfig.get();
         all[propName] = propValue;
         ModelConfig.getInstance().sesion.guardar(all);
     }
 
-    static isEqual(name, value) {
+    static changeAll(namesValueArr: any) {
+        var all = this.get();
+
+        all = Object.assign(all, namesValueArr)
+
+        ModelConfig.getInstance().sesion.guardar(all);
+        this.anyChange = true
+    }
+
+    static isEqual(name: string, value: any) {
         const current = ModelConfig.get(name)
         return current == value
     }
-
 
     getAll() {
         return this.sesion.cargarGuardados();
@@ -70,7 +81,7 @@ class ModelConfig {
         return (this.sesion.getFirst())
     }
 
-    static async getAllComercio(callbackOk:any, callbackWrong:any) {
+    static async getAllComercio(callbackOk: any, callbackWrong: any) {
         try {
             const configs = ModelConfig.get()
             var url = configs.urlBase

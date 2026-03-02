@@ -44,7 +44,9 @@ import ProductCodeStack from "../../Models/ProductCodeStack";
 import Balanza from "../../Models/Balanza";
 import BalanzaUnidad from "../../Models/BalanzaUnidad";
 import dayjs from "dayjs";
-import { OrdenListado } from "../../definitions/BaseConfig";
+import OrdenListado from "../../definitions/OrdenesListado";
+import ModosTrabajoConexion from "../../definitions/ModosConexion";
+import Ofertas from "../../Models/Ofertas";
 
 const BoxProducts = ({ }) => {
   const {
@@ -74,20 +76,53 @@ const BoxProducts = ({ }) => {
     hideLoading,
     showLoading,
 
-    searchInputRef
+    searchInputRef,
+    descuentos,
+    setDescuentos
   } = useContext(SelectedOptionsContext);
 
 
 
   const [products, setProducts] = useState([]);
+  const [productsConOfertas, setProductsConOfertas] = useState([]);
+
+  const [ofertasContradictorias, setOfertasContradictorias] = useState(false);
   const [cargado, setCargado] = useState(null);
 
   const [paginaBusqueda, setPaginaBusqueda] = useState(0);
   const [cantidadPaginasBusqueda, setCantidadPaginasBusqueda] = useState(0);
 
   const focusSearchInput = () => {
-    System.intentarFoco(searchInputRef)
+    System.darFocoEnBuscar(searchInputRef)
   }
+
+
+  const aplicarOfertas = () => {
+    if (Ofertas.aplicando) return
+    // console.log("aplicando ofertas")
+    // console.log("salesData", salesData)
+
+    Ofertas.aplicarTodas(salesData, (resultadoOfertas, totalConOfertas, productoVendidosConOfertas) => {
+      // AGRUPAMOS
+      Ofertas.calcularDescuentosFinales(resultadoOfertas, (prodConOfer, totalDescuentos) => {
+        setDescuentos(totalDescuentos)
+        setProductsConOfertas(prodConOfer)
+      })
+
+    }, () => {
+
+    })
+  }
+
+  useEffect(() => {
+    // console.log("cambio algo con productos")
+    if (!Ofertas.aplicando) {
+      setProductsConOfertas([])
+      setProductsConOfertas(false)
+      aplicarOfertas()
+    }
+  }, [grandTotal]);
+
 
   useEffect(() => {
     if (textSearchProducts.trim() == "") {
@@ -97,6 +132,9 @@ const BoxProducts = ({ }) => {
     }
     handleDescripcionSearchButtonClick()
   }, [textSearchProducts]);
+
+
+
 
   const buscarValoresBalanzaVentaUnidad = (codigoBusqueda) => {
     const CODBALANZA = BalanzaUnidad.getCodigo()
@@ -125,9 +163,9 @@ const BoxProducts = ({ }) => {
 
             const x1 = CODBALANZA.length
             const x2 = CODBALANZA.length + LARGOIDPRODBALANZA
-            const idProducto = parte.substring(
+            const idProducto = parseInt(parte.substring(
               CODBALANZA.length, CODBALANZA.length + LARGOIDPRODBALANZA
-            )
+            ))
 
             // const peso = parte.substring(8, 8 + 4)
             const peso = parte.substring(
@@ -142,18 +180,15 @@ const BoxProducts = ({ }) => {
             const pesoFloat = parseFloat(peso)
 
             showLoading("buscando producto " + parseInt(idProducto))
-            Product.getInstance().findByCodigo({ codigoProducto: idProducto, codigoCliente: codigoCliente }, (products, response) => {
+            console.log("busca 1.. cliente", cliente)
+            Product.getInstance().findByCodigoBarras({ codigoProducto: idProducto }, (products, response) => {
               if (products.length > 0) {
                 const productoEncontrado = products[0];
                 addToSalesData(productoEncontrado, pesoFloat);
                 // setProductByCodigo(productoEncontrado);
               } else {
                 showMessage("Producto No encontrado");
-                showConfirm("Producto No encontrado, desea agregar un nuevo producto con el codigo '" + parte + "' ?", () => {
-                  addNewProductFromCode(parte)
-                }, () => {
-
-                })
+                procesarNoEncontrado(parte)
               }
 
               hideLoading()
@@ -166,21 +201,14 @@ const BoxProducts = ({ }) => {
           } else {
             //codigo no coincide con codigo de balanza configurado
             showMessage("Producto No encontrado");
-            showConfirm("Producto No encontrado, desea agregar un nuevo producto con el codigo '" + parte + "' ?", () => {
-              addNewProductFromCode(parte)
-            }, () => {
-
-            })
+            procesarNoEncontrado(parte)
           }
 
 
         })
       } else {
         showMessage("Producto No encontrado");
-        showConfirm("Producto No encontrado, desea agregar un nuevo producto con el codigo ' " + codigoBusqueda + " ' ?", () => {
-          addNewProductFromCode(codigoBusqueda)
-        }, () => {
-        })
+        procesarNoEncontrado(codigoBusqueda)
       }
 
       hideLoading()
@@ -189,15 +217,21 @@ const BoxProducts = ({ }) => {
       return
     } else {
       showMessage("Producto No encontrado");
-      showConfirm("Producto No encontrado, desea agregar un nuevo producto con el codigo ' " + codigoBusqueda + " ' ?", () => {
-        addNewProductFromCode(codigoBusqueda)
+      procesarNoEncontrado(codigoBusqueda)
+    }
+  }
+
+  const procesarNoEncontrado = (codigoNoEncontrado) => {
+    if (ModelConfig.get("crearProductoNoEncontrado")) {
+      showConfirm("Producto No encontrado, desea agregar un nuevo producto con el codigo ' " + codigoNoEncontrado + " ' ?", () => {
+        addNewProductFromCode(codigoNoEncontrado)
       }, () => {
       })
     }
   }
 
   const buscarValoresBalanza = (codigoBusqueda) => {
-    // console.log("buscarValoresBalanza")
+    console.log("buscarValoresBalanza")
 
     const CODBALANZA = Balanza.getCodigo()
     const LARGOIDPRODBALANZA = parseInt(ModelConfig.get("largoIdProdBalanza"))
@@ -226,9 +260,9 @@ const BoxProducts = ({ }) => {
 
             // const idProducto = parte.substring(3, 3+5)
 
-            const idProducto = parte.substring(
+            const idProducto = parseInt(parte.substring(
               CODBALANZA.length, CODBALANZA.length + LARGOIDPRODBALANZA
-            )
+            ))
 
             // const peso = parte.substring(8, 8 + 4)
             const peso = parte.substring(
@@ -238,25 +272,23 @@ const BoxProducts = ({ }) => {
 
             if (parte.trim() == "") return;
 
-            // console.log("codigo: " + parseInt(idProducto))
-            // console.log("peso: " + peso)
+            console.log("codigo: " + parseInt(idProducto))
+            console.log("peso: " + peso)
             const pesoEntero = peso.substring(0, PESOENTERO)
             const pesoDecimal = peso.substring(PESOENTERO)
             const pesoFloat = parseFloat(pesoEntero + "." + pesoDecimal)
 
             showLoading("buscando producto " + parseInt(idProducto))
-            Product.getInstance().findByCodigo({ codigoProducto: idProducto, codigoCliente: codigoCliente }, (products, response) => {
+            console.log("busca 2.. cliente", cliente)
+
+            Product.getInstance().findByCodigoBarras({ codigoProducto: parseInt(idProducto) }, (products, response) => {
               if (products.length > 0) {
                 const productoEncontrado = products[0];
                 addToSalesData(productoEncontrado, pesoFloat);
                 // setProductByCodigo(productoEncontrado);
               } else {
                 showMessage("Producto No encontrado");
-                showConfirm("Producto No encontrado, desea agregar un nuevo producto con el codigo '" + parte + "' ?", () => {
-                  addNewProductFromCode(parte)
-                }, () => {
-
-                })
+                procesarNoEncontrado(parte)
               }
 
               hideLoading()
@@ -276,10 +308,7 @@ const BoxProducts = ({ }) => {
         })
       } else {
         showMessage("Producto No encontrado");
-        showConfirm("Producto No encontrado, desea agregar un nuevo producto con el codigo ' " + codigoBusqueda + " ' ?", () => {
-          addNewProductFromCode(codigoBusqueda)
-        }, () => {
-        })
+        procesarNoEncontrado(codigoBusqueda)
       }
 
       hideLoading()
@@ -288,10 +317,7 @@ const BoxProducts = ({ }) => {
       return
     } else {
       showMessage("Producto No encontrado");
-      showConfirm("Producto No encontrado, desea agregar un nuevo producto con el codigo ' " + codigoBusqueda + " ' ?", () => {
-        addNewProductFromCode(codigoBusqueda)
-      }, () => {
-      })
+      procesarNoEncontrado(codigoBusqueda)
     }
   }
 
@@ -299,9 +325,8 @@ const BoxProducts = ({ }) => {
   const procesarBusqueda = (codigoBusqueda) => {
     // console.log("procesando la busqueda", codigoBusqueda)
 
-    var codigoCliente = 0
-    if (cliente) codigoCliente = cliente.codigoCliente
-    Product.getInstance().findByCodigoBarras({ codigoProducto: codigoBusqueda, codigoCliente: codigoCliente }, (products, response) => {
+
+    Product.getInstance().findByCodigoBarras({ codigoProducto: codigoBusqueda }, (products, response) => {
       // console.log("Respuesta de la IdBYCODIGO:", response.data);
       // console.log("Cantidad registros:", response.data.cantidadRegistros);
 
@@ -392,7 +417,7 @@ const BoxProducts = ({ }) => {
           } else {
             // sales.products = []
             Preventa.adaptarLecturaProductos(products).forEach((produ) => {
-              const tipo = ProductSold.getInstance().esPesable(produ) ? 2 : 1
+              const tipo = ProductSold.esPesable(produ) ? 2 : 1
               addToSalesData({
                 ...produ, ...{
                   idProducto: produ.codProducto,
@@ -481,8 +506,7 @@ const BoxProducts = ({ }) => {
 
                 setTimeout(() => {
                   Product.getInstance().findByCodigoBarras({
-                    codigoProducto: codBarra,
-                    codigoCliente: codigoCliente
+                    codigoProducto: codBarra
                   },
                     (products, response) => {
                       if (products.length > 0) {
@@ -618,11 +642,11 @@ const BoxProducts = ({ }) => {
   }
 
   useEffect(() => {
-    console.log("cambio paginaBusqueda", paginaBusqueda)
+    // console.log("cambio paginaBusqueda", paginaBusqueda)
   }, [paginaBusqueda])
 
   useEffect(() => {
-    console.log("cambio cantidadPaginasBusqueda", cantidadPaginasBusqueda)
+    // console.log("cambio cantidadPaginasBusqueda", cantidadPaginasBusqueda)
   }, [cantidadPaginasBusqueda])
 
 
@@ -906,24 +930,61 @@ const BoxProducts = ({ }) => {
                     />
                   )
                 })}
+
+
+
+                {
+                  !ofertasContradictorias &&
+                  productsConOfertas &&
+                  productsConOfertas.length > 0 && (
+
+                    productsConOfertas.map((prodOferta, ixx) => {
+                      return (
+                        <TableRow key={ixx}>
+                          <TableCell sx={{
+                            textAlign: "center"
+                          }}>
+                            Descuento
+                            <br />
+                            <Typography sx={{
+                              border: "1px solid #ccc",
+                              borderRadius: "4px",
+                              display: "inline-block",
+                              fontSize: "12px",
+                              padding: "2px 4px",
+                              textAlign: "center"
+                            }}>
+                              tipo
+                              {" "}
+                              {prodOferta.ofertaAplicada.tipo}
+                              {" "}
+                              en
+                              {" "}
+                              {prodOferta.ofertaAplicada.tipoDescuento}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            {/* agregar o quitar */}
+                          </TableCell>
+                          <TableCell>
+                            {prodOferta.description}
+                          </TableCell>
+                          <TableCell>
+                            {/* precio unitario */}
+                          </TableCell>
+                          <TableCell>
+                            -${prodOferta.elDescuento}
+                          </TableCell>
+                          <TableCell>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })
+                  )}
               </TableBody>
             </Table>
           </TableContainer>
-          <br />
         </Paper>
-        {/* <Paper
-            sx={{
-              width: "99%",
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              padding: "21px",
-              margin: "5px",
-            }}
-            elevation={18}
-          >
-            <Typography sx={{ fontSize: "25px", }}>Total: ${System.getInstance().en2Decimales(grandTotal)}</Typography>
-          </Paper> */}
       </Grid>
     </Paper>
 

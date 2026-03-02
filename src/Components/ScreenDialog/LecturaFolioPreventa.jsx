@@ -79,7 +79,7 @@ const LecturaFolioPreventa = ({
         showMessage("Ya fue usada la preventa")
       } else {
         Preventa.adaptarLecturaProductos(products).forEach((produ) => {
-          const tipo = ProductSold.getInstance().esPesable(produ) ? 2 : 1
+          const tipo = ProductSold.esPesable(produ) ? 2 : 1
           addToSalesData({
             ...produ, ...{
               idProducto: produ.codProducto,
@@ -246,8 +246,10 @@ const LecturaFolioPreventa = ({
                   <tbody>
                     {listadoEmitidas.map((pre, ix) => (
                       <tr key={ix} onClick={() => {
-                        setFolio(0)
-                        setIdCabecera(pre.idCabecera)
+                        setFolio(pre.idCabecera)
+                        setIdCabecera(0)
+                        // setFolio(0)
+                        // setIdCabecera(pre.idCabecera)
                         setPreventaHash(pre.preVentaID)
 
                         setTimeout(() => {
